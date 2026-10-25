@@ -6,17 +6,6 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-
-// Don't let the static handler expose server code or stored user data.
-// (Better long-term: move the html/css/js into a /public folder and serve only that.)
-const BLOCKED = ['/server.js', '/user_data.json', '/package.json', '/package-lock.json'];
-app.use((req, res, next) => {
-  const p = decodeURIComponent(req.path).toLowerCase();
-  if (BLOCKED.includes(p) || p.startsWith('/node_modules') || p.startsWith('/.')) {
-    return res.status(404).end();
-  }
-  next();
-});
 app.use(express.static(path.join(__dirname)));
 
 

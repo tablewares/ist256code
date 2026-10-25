@@ -1,9 +1,762 @@
 [
-  { "productId": "SW-1001", "description": "Midnight Drive – Vinyl LP", "category": "Alternative", "unitOfMeasure": "Vinyl", "price": 27.99, "weight": "0.45 kg" },
-  { "productId": "SW-1002", "description": "Back Road Stories – Deluxe CD", "category": "Country", "unitOfMeasure": "CD", "price": 14.99, "weight": "0.10 kg" },
-  { "productId": "SW-1003", "description": "City Lights – Digital Album", "category": "Pop", "unitOfMeasure": "Digital Download", "price": 9.99, "weight": "" },
-  { "productId": "SW-1004", "description": "Concrete Poetry – Vinyl LP", "category": "Hip-Hop", "unitOfMeasure": "Vinyl", "price": 31.50, "weight": "0.48 kg" },
-  { "productId": "SW-1005", "description": "Amplified – Cassette", "category": "Rock", "unitOfMeasure": "Cassette", "price": 11.00, "weight": "0.06 kg" },
-  { "productId": "SW-1006", "description": "Slow Burn – Digital Single", "category": "R&B", "unitOfMeasure": "Digital Download", "price": 1.29, "weight": "" },
-  { "productId": "SW-1007", "description": "Neon Static – Deluxe CD", "category": "Pop", "unitOfMeasure": "CD", "price": 16.49, "weight": "0.11 kg" }
+    {
+        "productId": "1",
+        "description": "Nicole Kidman",
+        "category": "Pop",
+        "unitOfMeasure": "Vinyl",
+        "price": "31.15 ",
+        "weight": "AD\u00c9LA-3:01"
+    },
+    {
+        "productId": "2",
+        "description": "Ain't In LA",
+        "category": "Electronic",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "AD\u00c9LA-N/A"
+    },
+    {
+        "productId": "3",
+        "description": "The Cure",
+        "category": "Pop",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Olivia Rodrigo-4:57"
+    },
+    {
+        "productId": "4",
+        "description": "Expectations",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "35.60 ",
+        "weight": "Olivia Rodrigo, Chappell Roan-N/A"
+    },
+    {
+        "productId": "5",
+        "description": "Stupid Song",
+        "category": "Pop",
+        "unitOfMeasure": "Vinyl",
+        "price": "13.33 ",
+        "weight": "Olivia Rodrigo-3:27"
+    },
+    {
+        "productId": "6",
+        "description": "Housewife",
+        "category": "Pop",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Tate McRae-3:28"
+    },
+    {
+        "productId": "7",
+        "description": "Earrings",
+        "category": "Pop",
+        "unitOfMeasure": "Vinyl",
+        "price": "35.59 ",
+        "weight": "Malcolm Todd-2:31"
+    },
+    {
+        "productId": "8",
+        "description": "Stateside + Zara Larsson",
+        "category": "Electronic",
+        "unitOfMeasure": "Vinyl",
+        "price": "24.47 ",
+        "weight": "PinkPantheress-N/A"
+    },
+    {
+        "productId": "9",
+        "description": "Maggots For Brains",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Olivia Rodrigo-N/A"
+    },
+    {
+        "productId": "10",
+        "description": "Drop Dead",
+        "category": "Pop",
+        "unitOfMeasure": "Vinyl",
+        "price": "18.18 ",
+        "weight": "Olivia Rodrigo-N/A"
+    },
+    {
+        "productId": "12",
+        "description": "Melatonin",
+        "category": "Electronic",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Tinashe (2)-3:42"
+    },
+    {
+        "productId": "13",
+        "description": "Duvet",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "53.36 ",
+        "weight": "b\u00f4a-3:25"
+    },
+    {
+        "productId": "15",
+        "description": "505",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Arctic Monkeys-4:13"
+    },
+    {
+        "productId": "16",
+        "description": "Marianne",
+        "category": "Rock",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Fontaines D.C.-3:45"
+    },
+    {
+        "productId": "17",
+        "description": "Honeybee",
+        "category": "Pop",
+        "unitOfMeasure": "Vinyl",
+        "price": "40.05 ",
+        "weight": "Olivia Rodrigo-3:43"
+    },
+    {
+        "productId": "18",
+        "description": "Bags",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "66.75 ",
+        "weight": "Clairo (2)-N/A"
+    },
+    {
+        "productId": "19",
+        "description": "Creep",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "435.21 ",
+        "weight": "Radiohead-3:55"
+    },
+    {
+        "productId": "20",
+        "description": "Lovers Rock",
+        "category": "Pop",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "TV Girl-3:33"
+    },
+    {
+        "productId": "21",
+        "description": "Hate That I Made You Love Me",
+        "category": "Pop",
+        "unitOfMeasure": "Cassette",
+        "price": "14.99 ",
+        "weight": "Ariana Grande-N/A"
+    },
+    {
+        "productId": "22",
+        "description": "U + Me = <3",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Olivia Rodrigo-N/A"
+    },
+    {
+        "productId": "23",
+        "description": "My Way",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Olivia Rodrigo-N/A"
+    },
+    {
+        "productId": "24",
+        "description": "Six Shot Morning",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "144.15 ",
+        "weight": "Fontaines D.C.-N/A"
+    },
+    {
+        "productId": "25",
+        "description": "Fame Is A Gun",
+        "category": "Electronic",
+        "unitOfMeasure": "Vinyl",
+        "price": "13.34 ",
+        "weight": "Addison Rae-3:03"
+    },
+    {
+        "productId": "26",
+        "description": "Oh Yeah?",
+        "category": "Rock",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Steve Lacy (4)-N/A"
+    },
+    {
+        "productId": "27",
+        "description": "Loser",
+        "category": "Funk / Soul",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Tame Impala-3:43"
+    },
+    {
+        "productId": "28",
+        "description": "Sweater Weather",
+        "category": "Hip Hop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "The Neighbourhood (3)-4:00"
+    },
+    {
+        "productId": "29",
+        "description": "Good Luck, Babe!",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "N/A",
+        "weight": "Chappell Roan-N/A"
+    },
+    {
+        "productId": "30",
+        "description": "Japan",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "144.15 ",
+        "weight": "Fontaines D.C.-N/A"
+    },
+    {
+        "productId": "31",
+        "description": "Mimesis",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "144.15 ",
+        "weight": "Fontaines D.C.-N/A"
+    },
+    {
+        "productId": "32",
+        "description": "KGB",
+        "category": "Electronic",
+        "unitOfMeasure": "Vinyl",
+        "price": "35.56 ",
+        "weight": "AD\u00c9LA-2:37"
+    },
+    {
+        "productId": "33",
+        "description": "D>E>A>T>H>M>E>T>A>L",
+        "category": "Electronic",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Panchiko-N/A"
+    },
+    {
+        "productId": "34",
+        "description": "Let Down",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Radiohead-N/A"
+    },
+    {
+        "productId": "35",
+        "description": "Tongue",
+        "category": "Rock",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Fontaines D.C.-3:13"
+    },
+    {
+        "productId": "36",
+        "description": "The Less I Know The Better",
+        "category": "Electronic",
+        "unitOfMeasure": "CD",
+        "price": "25.00 ",
+        "weight": "Tame Impala-3:37"
+    },
+    {
+        "productId": "37",
+        "description": "Happy For You",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "144.15 ",
+        "weight": "Fontaines D.C.-N/A"
+    },
+    {
+        "productId": "38",
+        "description": "No One Noticed",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "70.00 ",
+        "weight": "The Mar\u00edas-3:56"
+    },
+    {
+        "productId": "39",
+        "description": "Where Is Gone?",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "11.85 ",
+        "weight": "Fontaines D.C.-N/A"
+    },
+    {
+        "productId": "40",
+        "description": "Demolition",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "144.15 ",
+        "weight": "Fontaines D.C.-N/A"
+    },
+    {
+        "productId": "41",
+        "description": "Purple (Happy Version)",
+        "category": "Pop",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Olivia Rodrigo-3:06"
+    },
+    {
+        "productId": "42",
+        "description": "Sienna",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "11.57 ",
+        "weight": "The Mar\u00edas-3:44"
+    },
+    {
+        "productId": "43",
+        "description": "Cigarette Smoke",
+        "category": "Pop",
+        "unitOfMeasure": "Cassette",
+        "price": "18.99 ",
+        "weight": "Olivia Rodrigo-N/A"
+    },
+    {
+        "productId": "44",
+        "description": "Mr. Brightside",
+        "category": "Electronic",
+        "unitOfMeasure": "CD",
+        "price": "19.99 ",
+        "weight": "The Killers-N/A"
+    },
+    {
+        "productId": "45",
+        "description": "Girl Like Me",
+        "category": "Electronic",
+        "unitOfMeasure": "Vinyl",
+        "price": "19.67 ",
+        "weight": "PinkPantheress-2:24"
+    },
+    {
+        "productId": "46",
+        "description": "Stop the Wedding!",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Ashe (10)-N/A"
+    },
+    {
+        "productId": "47",
+        "description": "When The Sun Hits",
+        "category": "Rock",
+        "unitOfMeasure": "Lathe Cut",
+        "price": "N/A",
+        "weight": "Slowdive-N/A"
+    },
+    {
+        "productId": "48",
+        "description": "Casual",
+        "category": "Pop",
+        "unitOfMeasure": "Vinyl",
+        "price": "N/A",
+        "weight": "Chappell Roan-3:45"
+    },
+    {
+        "productId": "49",
+        "description": "What\u2019s Wrong With Me",
+        "category": "Pop",
+        "unitOfMeasure": "Vinyl",
+        "price": "41.53 ",
+        "weight": "Olivia Rodrigo-N/A"
+    },
+    {
+        "productId": "50",
+        "description": "Midnight Sun (Live)",
+        "category": "Electronic",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Zara Larsson-3:58"
+    },
+    {
+        "productId": "51",
+        "description": "Lover, You Should've Come Over",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Jeff Buckley-N/A"
+    },
+    {
+        "productId": "52",
+        "description": "LES",
+        "category": "Hip Hop",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Childish Gambino-N/A"
+    },
+    {
+        "productId": "53",
+        "description": "All I Wanted",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "31.14 ",
+        "weight": "Paramore-N/A"
+    },
+    {
+        "productId": "54",
+        "description": "The Only Exception",
+        "category": "Rock",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Paramore-4:27"
+    },
+    {
+        "productId": "55",
+        "description": "One Man",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "144.15 ",
+        "weight": "Fontaines D.C.-N/A"
+    },
+    {
+        "productId": "56",
+        "description": "Apocalypse (Radio Edit)",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "53.40 ",
+        "weight": "Cigarettes After Sex-3:24"
+    },
+    {
+        "productId": "57",
+        "description": "We Fell In Love In October",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "13.35 ",
+        "weight": "Girl In Red-N/A"
+    },
+    {
+        "productId": "58",
+        "description": "All I Need",
+        "category": "Electronic",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Radiohead-3:49"
+    },
+    {
+        "productId": "59",
+        "description": "See You Again (feat. Kali Uchis)",
+        "category": "Hip Hop",
+        "unitOfMeasure": "CD",
+        "price": "5.33 ",
+        "weight": "Tyler, The Creator-3:00"
+    },
+    {
+        "productId": "60",
+        "description": "Bring Me To Life",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "0.50 ",
+        "weight": "Evanescence-3:56"
+    },
+    {
+        "productId": "61",
+        "description": "You Miss Me",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "144.15 ",
+        "weight": "Fontaines D.C.-N/A"
+    },
+    {
+        "productId": "62",
+        "description": "Do I Wanna Know?",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "15.99 ",
+        "weight": "Arctic Monkeys-N/A"
+    },
+    {
+        "productId": "63",
+        "description": "Everlong",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "3.50 ",
+        "weight": "Foo Fighters-4:10"
+    },
+    {
+        "productId": "64",
+        "description": "Dance...",
+        "category": "Electronic",
+        "unitOfMeasure": "Vinyl",
+        "price": "33.82 ",
+        "weight": "Slayyyter-4:45"
+    },
+    {
+        "productId": "65",
+        "description": "No Surprises",
+        "category": "Rock",
+        "unitOfMeasure": "VHS",
+        "price": "N/A",
+        "weight": "Radiohead-3:50"
+    },
+    {
+        "productId": "66",
+        "description": "Crank",
+        "category": "Electronic",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Slayyyter-2:55"
+    },
+    {
+        "productId": "67",
+        "description": "The Perfect Pair",
+        "category": "Rock",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "beabadoobee-2:58"
+    },
+    {
+        "productId": "68",
+        "description": "Petal",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Ariana Grande-N/A"
+    },
+    {
+        "productId": "69",
+        "description": "Slow Dancing In The Dark ",
+        "category": "Funk / Soul",
+        "unitOfMeasure": "Vinyl",
+        "price": "32.93 ",
+        "weight": "Joji-3:29"
+    },
+    {
+        "productId": "70",
+        "description": "Crash Out",
+        "category": "Electronic",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Tinashe (2)-3:11"
+    },
+    {
+        "productId": "71",
+        "description": "Babydoll",
+        "category": "Hip Hop",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Dominic Fike-1:37"
+    },
+    {
+        "productId": "72",
+        "description": "Too Easy",
+        "category": "Electronic",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Tinashe (2)-1:53"
+    },
+    {
+        "productId": "73",
+        "description": "Headlock (Immi\u2019s Radio Mix)",
+        "category": "Electronic",
+        "unitOfMeasure": "CD",
+        "price": "23.99 ",
+        "weight": "Imogen Heap-3:13"
+    },
+    {
+        "productId": "74",
+        "description": "Still Into You (Original Version)",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Paramore-3:36"
+    },
+    {
+        "productId": "75",
+        "description": "Less",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Olivia Rodrigo-N/A"
+    },
+    {
+        "productId": "77",
+        "description": "Superscar",
+        "category": "Pop",
+        "unitOfMeasure": "Vinyl",
+        "price": "N/A",
+        "weight": "AD\u00c9LA-N/A"
+    },
+    {
+        "productId": "78",
+        "description": "Flashing Lights (Clean)",
+        "category": "Hip Hop",
+        "unitOfMeasure": "CD",
+        "price": "20.91 ",
+        "weight": "Kanye West-4:00"
+    },
+    {
+        "productId": "79",
+        "description": "Good Looking",
+        "category": "Rock",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Suki Waterhouse-3:34"
+    },
+    {
+        "productId": "80",
+        "description": "Jigsaw Falling Into Place",
+        "category": "Rock",
+        "unitOfMeasure": "DVDr",
+        "price": "50.00 ",
+        "weight": "Radiohead-4:30"
+    },
+    {
+        "productId": "81",
+        "description": "Fade Into You",
+        "category": "Rock",
+        "unitOfMeasure": "Cassette",
+        "price": "N/A",
+        "weight": "Mazzy Star-4:52"
+    },
+    {
+        "productId": "83",
+        "description": "Begged",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Olivia Rodrigo-N/A"
+    },
+    {
+        "productId": "84",
+        "description": "Reflections",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "The Neighbourhood (3)-4:04"
+    },
+    {
+        "productId": "85",
+        "description": "Sweet Boy",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Malcolm Todd-N/A"
+    },
+    {
+        "productId": "86",
+        "description": "Intimate",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "144.15 ",
+        "weight": "Fontaines D.C.-N/A"
+    },
+    {
+        "productId": "87",
+        "description": "Into You (Original Version)",
+        "category": "Electronic",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Ariana Grande-4:04"
+    },
+    {
+        "productId": "88",
+        "description": "Nobody Wanna Dance Anymore",
+        "category": "Electronic",
+        "unitOfMeasure": "Vinyl",
+        "price": "112.19 ",
+        "weight": "Tinashe (2)-N/A"
+    },
+    {
+        "productId": "89",
+        "description": "Back To Me",
+        "category": "Latin",
+        "unitOfMeasure": "Vinyl",
+        "price": "534.00 ",
+        "weight": "The Mar\u00edas-3:33"
+    },
+    {
+        "productId": "90",
+        "description": "Eyes Without A Face",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "9.54 ",
+        "weight": "Billy Idol-4:08"
+    },
+    {
+        "productId": "91",
+        "description": "Sawadika (Explicit)",
+        "category": "Pop",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Lisa (154)-3:08"
+    },
+    {
+        "productId": "92",
+        "description": "Roommates",
+        "category": "Funk / Soul",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Malcolm Todd-N/A"
+    },
+    {
+        "productId": "93",
+        "description": "Birds Of A Feather (Main)",
+        "category": "Pop",
+        "unitOfMeasure": "CD",
+        "price": "N/A",
+        "weight": "Billie Eilish-3:30"
+    },
+    {
+        "productId": "94",
+        "description": "The Adults Are Talking",
+        "category": "Rock",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "The Strokes-4:47"
+    },
+    {
+        "productId": "95",
+        "description": "The Subway",
+        "category": "Pop",
+        "unitOfMeasure": "Digital",
+        "price": "N/A",
+        "weight": "Chappell Roan-4:12"
+    },
+    {
+        "productId": "96",
+        "description": "Back To Friends",
+        "category": "Rock",
+        "unitOfMeasure": "CD",
+        "price": "8.39 ",
+        "weight": "Sombr (2)-3:19"
+    },
+    {
+        "productId": "97",
+        "description": "Sofia",
+        "category": "Rock",
+        "unitOfMeasure": "Vinyl",
+        "price": "22.24 ",
+        "weight": "Clairo (2)-N/A"
+    },
+    {
+        "productId": "98",
+        "description": "Sports Car",
+        "category": "Electronic",
+        "unitOfMeasure": "Vinyl",
+        "price": "16.02 ",
+        "weight": "Tate McRae-N/A"
+    },
+    {
+        "productId": "99",
+        "description": "Diet Pepsi",
+        "category": "Pop",
+        "unitOfMeasure": "Vinyl",
+        "price": "32.04 ",
+        "weight": "Addison Rae-N/A"
+    }
 ]
