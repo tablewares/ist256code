@@ -202,8 +202,9 @@ $(function () {
         }).done(function () {
             showCartMessage('Cart sent to the API: ' + payload.itemCount + ' item(s), $' + payload.total.toFixed(2) + '.', 'success');
         }).fail(function (xhr) {
-            if (xhr.status === 0 || xhr.status === 404) {
-                // Expected for now: the RESTful API is a later assignment.
+            if (xhr.status === 0 || xhr.status === 404 || xhr.status === 405 || xhr.status === 501) {
+                // Expected for now: the RESTful API is a later assignment. Static servers
+                // (Live Server, GitHub Pages, python http.server) answer 405 to a POST.
                 showCartMessage('The cart JSON is ready, but the API (' + CART_API + ') is not available yet.', 'warning');
             } else {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'The API returned an error (' + xhr.status + ').';
