@@ -160,6 +160,25 @@ $(function () {
         }
     });
 
+    /* ---------- 3b. update and remove cart rows (delegated, so they survive every re-render) ---------- */
+    // Change a quantity: cart.js validates it and redraws the cart; bad input is flagged red.
+    $('#cartBody').on('change', '.qty-input', function () {
+        var $input = $(this);
+        var ok = updateCartQuantity($input.attr('data-track-id'), $input.val());
+        if (!ok) {
+            $input.addClass('is-invalid').attr('aria-invalid', 'true');
+        }
+    });
+
+    // Remove a row: fade it out, then let cart.js delete it from the cart array.
+    $('#cartBody').on('click', '.remove-btn', function () {
+        var $button = $(this).prop('disabled', true);
+        var id = $button.attr('data-track-id');
+        $button.closest('tr').fadeOut(200, function () {
+            removeFromCart(id);
+        });
+    });
+
     /* ---------- 4. cart as JSON ---------- */
     function buildPayload(items) {
         var totalCents = 0, units = 0;
