@@ -173,7 +173,38 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Start Server
+const DATA_FILE = path.join(__dirname, 'registrations.json');
+app.post('/api/register', (req, res) => {
+    const newRegistration = {
+        ...req.body
+    };
+
+    // read existing data, append new entry, and save back to json file
+    fs.readFile(DATA_FILE, 'utf8', (err, data) => {
+        if (err) {
+            console.error('error reading file:', err);
+            return res.status(500).json({ success: false, message: 'server error reading data.' });
+        }
+
+        let registrations = [];
+        registrations = JSON.parse(data);
+        
+        registrations.push(newRegistration);
+        fs.writeFile(DATA_FILE, JSON.stringify(registrations, null, 2), (writeErr) => {
+            if (writeErr) {
+                console.error('error writing file:', writeErr);
+                return res.status(500).json({ success: false, message: 'eerver error saving data.' });
+            }
+            res.status(201).json({
+                success: true,
+                message: 'registration successful!',
+                data: newRegistration
+            });
+        });
+    });
+});
+
+// start Server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
