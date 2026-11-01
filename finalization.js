@@ -67,15 +67,50 @@ function validateFinalizationForm() {
 const finalizationForm = document.getElementById("eventRegistrationForm");
 
 if (finalizationForm) {
+    const form = finalizationForm;
     finalizationForm.addEventListener("submit", function(event) {
-        // Keep the page open for validation. No data is sent by this file.
-        // The submission teammate should replace this handler with their flow,
-        // calling validateFinalizationForm() before collecting or sending data.
+
         event.preventDefault();
-        if (!validateFinalizationForm()) {
-            const invalidFields = finalizationForm.getElementsByClassName("is-invalid");
-            invalidFields[0].focus();
+        event.stopPropagation();
+
+        // check Bootstrap validity
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
         }
+
+        form.classList.add('was-validated');
+
+        // gather form data into an object
+        const formData = {
+            fullName: document.getElementById('fullName').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            ticketType: document.getElementById('ticketType').value,
+            attendance: document.querySelector('input[name="attendance"]:checked')?.value || '',
+            session: document.getElementById('session').value,
+            favoriteGenre: document.getElementById('favoriteGenre').value,
+            specialRequests: document.getElementById('specialRequests').value.trim(),
+            updates: document.getElementById('updates').checked ? 'yes' : 'no'
+        };
+
+        try {
+            const response =  fetch('/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            }).then(response => {
+                const result =  response.json();
+                
+            });
+        } catch (error) {
+            console.error('Submission error:', error);
+            formMessage.className = 'alert alert-danger';
+            formMessage.textContent = 'Something went wrong :(.';
+            formMessage.classList.remove('d-none');
+        }
+      
     });
 
     function recheckFinalizationForm() {
@@ -89,8 +124,7 @@ if (finalizationForm) {
 }
 
 function submitListener(){
-    document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('eventRegistrationForm');
+    const form = finalizationForm
     const formMessage = document.getElementById('formMessage');
 
     form.addEventListener('submit', async (event) => {
@@ -145,7 +179,6 @@ function submitListener(){
             formMessage.classList.remove('d-none');
         }
     });
-});
 }
 
 submitListener();

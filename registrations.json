@@ -8,5 +8,35 @@
     "favoriteGenre": "rock",
     "specialRequests": "",
     "updates": "no"
+  },
+  {
+    "fullName": "wer",
+    "email": "wer@gmail.com",
+    "ticketType": "general",
+    "attendance": "in-person",
+    "session": "opening",
+    "favoriteGenre": "r-and-b",
+    "specialRequests": "",
+    "updates": "no"
+  },
+  {
+    "fullName": "234",
+    "email": "234@gmail.com",
+    "ticketType": "vip",
+    "attendance": "virtual",
+    "session": "opening",
+    "favoriteGenre": "r-and-b",
+    "specialRequests": "",
+    "updates": "no"
+  },
+  {
+    "fullName": "234",
+    "email": "234@gmail.com",
+    "ticketType": "general",
+    "attendance": "in-person",
+    "session": "artist-panel",
+    "favoriteGenre": "r-and-b",
+    "specialRequests": "",
+    "updates": "no"
   }
 ]
