@@ -202,6 +202,24 @@
                     </div>
                 </div>
 
+                <!-- Featured Track (optional). Options come from products.json via jQuery. -->
+                <div class="mb-3">
+                    <label for="trackSearch" class="form-label">
+                        Featured Track (Optional)
+                    </label>
+                    <input type="search"
+                           class="form-control mb-2"
+                           id="trackSearch"
+                           placeholder="Search tracks by title, artist or genre"
+                           autocomplete="off">
+                    <select class="form-select"
+                            id="featuredTrack"
+                            name="featuredTrack">
+                        <option value="">No featured track</option>
+                    </select>
+                    <div class="form-text" id="trackCount"></div>
+                </div>
+
                 <!-- Optional Requests -->
                 <div class="mb-3">
                     <label for="specialRequests" class="form-label">
@@ -232,6 +250,13 @@
                 </button>
 
             </form>
+
+            <!-- The JSON document the server saved (filled in by finalization.jquery.js) -->
+            <div id="savedJsonBox" class="mt-4 d-none">
+                <hr>
+                <h2 class="h5">Saved Registration (JSON)</h2>
+                <pre id="savedJson" class="bg-white border rounded p-3 small mb-0"></pre>
+            </div>
         </div>
 
     </main>
@@ -246,6 +271,10 @@
 
     <!-- JavaScript validation, React, and AJAX will be integrated by the group. -->
     <script src="finalization.js"></script>
+
+    <!-- jQuery: track search and saved-JSON display -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="finalization.jquery.js"></script>
 
 </body>
 </html>

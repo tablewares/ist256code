@@ -67,52 +67,6 @@ function validateFinalizationForm() {
 const finalizationForm = document.getElementById("eventRegistrationForm");
 
 if (finalizationForm) {
-    const form = finalizationForm;
-    finalizationForm.addEventListener("submit", function(event) {
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        // check Bootstrap validity
-        if (!form.checkValidity()) {
-            form.classList.add('was-validated');
-            return;
-        }
-
-        form.classList.add('was-validated');
-
-        // gather form data into an object
-        const formData = {
-            fullName: document.getElementById('fullName').value.trim(),
-            email: document.getElementById('email').value.trim(),
-            ticketType: document.getElementById('ticketType').value,
-            attendance: document.querySelector('input[name="attendance"]:checked')?.value || '',
-            session: document.getElementById('session').value,
-            favoriteGenre: document.getElementById('favoriteGenre').value,
-            specialRequests: document.getElementById('specialRequests').value.trim(),
-            updates: document.getElementById('updates').checked ? 'yes' : 'no'
-        };
-
-        try {
-            const response =  fetch('/api/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            }).then(response => {
-                const result =  response.json();
-                
-            });
-        } catch (error) {
-            console.error('Submission error:', error);
-            formMessage.className = 'alert alert-danger';
-            formMessage.textContent = 'Something went wrong :(.';
-            formMessage.classList.remove('d-none');
-        }
-      
-    });
-
     function recheckFinalizationForm() {
         if (finalizationValidationStarted) {
             validateFinalizationForm();
@@ -123,23 +77,26 @@ if (finalizationForm) {
     finalizationForm.addEventListener("change", recheckFinalizationForm);
 }
 
-function submitListener(){
-    const form = finalizationForm
+// The only submit handler: validate, collect the values, send them once, show the result.
+// The server (server.js) turns the values into the JSON document and saves it.
+function submitListener() {
+    const form = finalizationForm;
     const formMessage = document.getElementById('formMessage');
+    const submitButton = form.querySelector('button[type="submit"]');
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         event.stopPropagation();
 
-        // check Bootstrap validity
-        if (!form.checkValidity()) {
-            form.classList.add('was-validated');
+        // Aidan's validation: red/green field states and the message above the form.
+        if (!validateFinalizationForm()) {
+            const firstInvalid = form.getElementsByClassName('is-invalid')[0];
+            if (firstInvalid) firstInvalid.focus();
             return;
         }
 
-        form.classList.add('was-validated');
-
         // gather form data into an object
+        const trackField = document.getElementById('featuredTrack');   // filled in by finalization.jquery.js
         const formData = {
             fullName: document.getElementById('fullName').value.trim(),
             email: document.getElementById('email').value.trim(),
@@ -147,9 +104,12 @@ function submitListener(){
             attendance: document.querySelector('input[name="attendance"]:checked')?.value || '',
             session: document.getElementById('session').value,
             favoriteGenre: document.getElementById('favoriteGenre').value,
+            featuredTrack: trackField ? trackField.value : '',
             specialRequests: document.getElementById('specialRequests').value.trim(),
             updates: document.getElementById('updates').checked ? 'yes' : 'no'
         };
+
+        submitButton.disabled = true;   // blocks a second click while the request is in flight
 
         try {
             const response = await fetch('/api/register', {
@@ -166,19 +126,35 @@ function submitListener(){
                 formMessage.className = 'alert alert-success';
                 formMessage.textContent = result.message || 'Registration submitted successfully!';
                 formMessage.classList.remove('d-none');
-                
+
+                // Tell the page what was saved (finalization.jquery.js shows the JSON).
+                document.dispatchEvent(new CustomEvent('registration:saved', { detail: result.data }));
+
+                // Start the form over: empty fields, no red/green states.
                 form.reset();
                 form.classList.remove('was-validated');
+                form.querySelectorAll('.is-valid, .is-invalid').forEach(function(field) {
+                    field.classList.remove('is-valid', 'is-invalid');
+                    field.removeAttribute('aria-invalid');
+                });
+                finalizationValidationStarted = false;
             } else {
-                throw new Error(result.message || 'Something went wrong.');
+                // The server refused the data (for example a field it could not accept).
+                formMessage.className = 'alert alert-danger';
+                formMessage.textContent = result.message || 'Something went wrong.';
+                formMessage.classList.remove('d-none');
             }
         } catch (error) {
             console.error('Submission error:', error);
             formMessage.className = 'alert alert-danger';
             formMessage.textContent = 'Failed to submit registration. Please make sure the server is running.';
             formMessage.classList.remove('d-none');
+        } finally {
+            submitButton.disabled = false;
         }
     });
 }
 
-submitListener();
+if (finalizationForm) {
+    submitListener();
+}

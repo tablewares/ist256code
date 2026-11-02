@@ -173,35 +173,127 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-const DATA_FILE = path.join(__dirname, 'registrations.json');
+//  event registration endpoint (used by finalization.html / finalization.js)
+//
+//  The form sends flat values. This route checks them, builds the JSON document below,
+//  and stores it in registrations.json:
+//    {
+//      "registrationId": "REG-1A2B3C4D",
+//      "event": "SoundWave Live",
+//      "registeredAt": "2026-11-01T18:30:00.000Z",
+//      "contact": { "fullName": "...", "email": "..." },
+//      "options": {
+//        "ticketType": "vip", "attendanceType": "in-person", "session": "live-music",
+//        "favoriteGenre": "rock",
+//        "featuredTrack": { "productId": "5", "title": "Stupid Song" },   (or null)
+//        "specialRequests": "...", "receiveUpdates": true
+//      }
+//    }
+//  If an option is added to a <select> in finalization.html, add its value to REGISTRATION_CHOICES.
+
+const crypto = require('crypto');
+const REGISTRATIONS_FILE = path.join(__dirname, 'registrations.json');
+const EVENT_NAME = 'SoundWave Live';
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;   // same rule as finalization.js
+
+const REGISTRATION_CHOICES = {
+  ticketType: ['general', 'vip'],
+  attendance: ['in-person', 'virtual'],
+  session: ['opening', 'artist-panel', 'live-music', 'music-production'],
+  favoriteGenre: ['pop', 'hip-hop', 'rock', 'country', 'r-and-b', 'alternative', 'other']
+};
+
+const oneLine = (v) => (v == null ? '' : String(v).trim().replace(/\s+/g, ' '));
+
+// Check the flat form values. Returns { errors } (a list of { field, message }) or { doc }.
+const cleanRegistration = (body) => {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return { errors: [{ field: 'body', message: 'Send the registration as a JSON object.' }] };
+  }
+
+  const errors = [];
+  const fail = (field, message) => errors.push({ field, message });
+
+  const fullName = oneLine(body.fullName);
+  const email = oneLine(body.email).toLowerCase();
+  if (!fullName) fail('fullName', 'Full name is required.');
+  else if (fullName.length > 100) fail('fullName', 'Full name must be 100 characters or fewer.');
+  if (!EMAIL_PATTERN.test(email) || email.length > 254) fail('email', 'A valid email address is required.');
+
+  const choice = {};
+  const labels = { ticketType: 'ticket type', attendance: 'attendance type', session: 'event session', favoriteGenre: 'favorite genre' };
+  Object.keys(REGISTRATION_CHOICES).forEach((key) => {
+    choice[key] = oneLine(body[key]);
+    if (!REGISTRATION_CHOICES[key].includes(choice[key])) fail(key, `Choose a valid ${labels[key]}.`);
+  });
+
+  // Optional featured track: must be a real item in products.json (the title is copied from there).
+  let featuredTrack = null;
+  const trackId = oneLine(body.featuredTrack);
+  if (trackId) {
+    const product = getProducts().find((p) => String(p.productId) === trackId);
+    if (!product) fail('featuredTrack', 'Choose a track from the catalog.');
+    else featuredTrack = { productId: String(product.productId), title: oneLine(product.description) };
+  }
+
+  // Notes keep their line breaks; only stray spaces and tabs are tidied.
+  const specialRequests = body.specialRequests == null ? '' :
+    String(body.specialRequests).replace(/\r\n?/g, '\n').replace(/[ \t]+/g, ' ').trim();
+  if (specialRequests.length > 500) fail('specialRequests', 'Special requests must be 500 characters or fewer.');
+
+  if (errors.length) return { errors };
+
+  return {
+    doc: {
+      registrationId: 'REG-' + crypto.randomBytes(4).toString('hex').toUpperCase(),
+      event: EVENT_NAME,
+      registeredAt: new Date().toISOString(),
+      contact: { fullName, email },
+      options: {
+        ticketType: choice.ticketType,
+        attendanceType: choice.attendance,
+        session: choice.session,
+        favoriteGenre: choice.favoriteGenre,
+        featuredTrack,
+        specialRequests,
+        receiveUpdates: ['yes', 'true', 'on'].includes(String(body.updates).toLowerCase()) || body.updates === true
+      }
+    }
+  };
+};
+
+// A missing file just means no registrations yet. A file that exists but can't be parsed
+// is reported instead of being overwritten, so saved registrations are never wiped out.
+const readRegistrations = () => {
+  if (!fs.existsSync(REGISTRATIONS_FILE)) return [];
+  const data = JSON.parse(fs.readFileSync(REGISTRATIONS_FILE, 'utf8'));
+  if (!Array.isArray(data)) throw new Error('registrations.json is not a JSON array.');
+  return data;
+};
+
+// write to a temp file then rename so a crash can't leave a half-written registrations.json
+const writeRegistrations = (registrations) => {
+  const tmp = REGISTRATIONS_FILE + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(registrations, null, 2));
+  fs.renameSync(tmp, REGISTRATIONS_FILE);
+};
+
 app.post('/api/register', (req, res) => {
-    const newRegistration = {
-        ...req.body
-    };
+  const { errors, doc } = cleanRegistration(req.body);
+  if (errors) {
+    return res.status(400).json({ success: false, message: errors[0].message, errors });
+  }
 
-    // read existing data, append new entry, and save back to json file
-    fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-        if (err) {
-            console.error('error reading file:', err);
-            return res.status(500).json({ success: false, message: 'server error reading data.' });
-        }
+  try {
+    const registrations = readRegistrations();
+    registrations.push(doc);
+    writeRegistrations(registrations);
+  } catch (err) {
+    console.error('error saving registration:', err);
+    return res.status(500).json({ success: false, message: 'The server could not save your registration. Please try again.' });
+  }
 
-        let registrations = [];
-        registrations = JSON.parse(data);
-        
-        registrations.push(newRegistration);
-        fs.writeFile(DATA_FILE, JSON.stringify(registrations, null, 2), (writeErr) => {
-            if (writeErr) {
-                console.error('error writing file:', writeErr);
-                return res.status(500).json({ success: false, message: 'eerver error saving data.' });
-            }
-            res.status(201).json({
-                success: true,
-                message: 'registration successful!',
-                data: newRegistration
-            });
-        });
-    });
+  res.status(201).json({ success: true, message: 'Registration successful!', data: doc });
 });
 
 // start Server
