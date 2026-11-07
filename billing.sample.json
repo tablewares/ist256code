@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-07T23:30:00.000Z",
+  "customer": {
+    "fullName": "Jordan Rivera"
+  },
+  "billingAddress": {
+    "street": "123 College Ave",
+    "city": "State College",
+    "state": "PA",
+    "zip": "16801"
+  },
+  "payment": {
+    "method": "credit-card",
+    "cardBrand": "visa",
+    "cardLast4": "1111",
+    "expMonth": 12,
+    "expYear": 2030
+  },
+  "order": {
+    "items": [
+      {
+        "productId": "1",
+        "description": "Nicole Kidman",
+        "unitPrice": 31.15,
+        "quantity": 1,
+        "lineTotal": 31.15
+      },
+      {
+        "productId": "4",
+        "description": "Expectations",
+        "unitPrice": 35.6,
+        "quantity": 2,
+        "lineTotal": 71.2
+      }
+    ],
+    "itemCount": 3,
+    "subtotal": 102.35,
+    "shipping": {
+      "method": "standard",
+      "cost": 4.99
+    },
+    "total": 107.34
+  }
+}
