@@ -1,0 +1,152 @@
+$(function () {
+    var $search = $('#returnSearch');
+    var $body = $('#returnResults');
+    var $count = $('#returnCount');
+    if (!$search.length || !$body.length) return;      // not the Returns page
+
+    var CATALOG_URL = 'products.json';
+    var MAX_RESULTS = 20;                // keep the table short; keep typing to narrow it
+    var catalog = [];                    // simplified copy of products.json
+
+    /* ---------- helpers ---------- */
+    function clean(value) {
+        return value == null ? '' : String(value).trim();
+    }
+
+    function esc(value) {
+        return $('<div>').text(value == null ? '' : value).html();
+    }
+
+    function escRegex(value) {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // Wrap each search word in <mark>. The text is escaped first, so this is safe.
+    function highlight(value, words) {
+        var safe = esc(value);
+        if (!words.length) return safe;
+        var pattern = $.map(words, function (w) { return escRegex(esc(w)); }).join('|');
+        return safe.replace(new RegExp('(' + pattern + ')', 'gi'), '<mark>$1</mark>');
+    }
+
+    function money(n) {
+        return '$' + Number(n).toFixed(2);
+    }
+
+    // products.json keeps the artist inside "weight", like "Olivia Rodrigo-3:27".
+    function artistOf(weight) {
+        var match = /^(.*\S)\s*-\s*(\d+:\d{2}|N\/A)$/.exec(clean(weight));
+        return match ? match[1] : '';
+    }
+
+    function normalize(p) {
+        var priceText = clean(p.price);
+        var artist = artistOf(p.weight);
+        var product = {
+            productId: clean(p.productId),
+            productName: clean(p.description),
+            category: clean(p.category),
+            format: clean(p.unitOfMeasure),
+            price: (priceText !== '' && isFinite(priceText)) ? Number(priceText) : null,   // "N/A" -> null
+            artist: artist
+        };
+        if (clean(p.image)) product.image = clean(p.image);
+        return product;
+    }
+
+    function haystack(product) {
+        return [product.productId, product.productName, product.artist, product.category, product.format]
+            .join(' ').toLowerCase();
+    }
+
+    /* ---------- 1. load the catalog ---------- */
+    function load() {
+        $.getJSON(CATALOG_URL)
+            .done(function (data) {
+                catalog = $.map(data, function (p) {
+                    var product = normalize(p);
+                    return { product: product, text: haystack(product) };
+                });
+                catalog.sort(function (a, b) { return a.product.productName.localeCompare(b.product.productName); });
+                render();
+            })
+            .fail(function () {
+                $count.text('The product list could not be loaded (products.json). Run the site with node server.js.');
+            });
+    }
+
+    /* ---------- 2. search ---------- */
+    function wordsOf(query) {
+        return $.grep(clean(query).toLowerCase().split(/\s+/), Boolean);
+    }
+
+    // every word typed must appear somewhere in the product (AND search)
+    function find(query) {
+        var words = wordsOf(query);
+        return $.map($.grep(catalog, function (entry) {
+            return words.every(function (w) { return entry.text.indexOf(w) > -1; });
+        }), function (entry) { return $.extend({}, entry.product); });
+    }
+
+    function lookup(productId) {
+        var id = clean(productId);
+        var hit = $.grep(catalog, function (entry) { return entry.product.productId === id; })[0];
+        return hit ? $.extend({}, hit.product) : null;
+    }
+
+    /* ---------- 3. show the matches ---------- */
+    function render() {
+        var words = wordsOf($search.val());
+        var matches = find($search.val());
+        var shown = matches.slice(0, MAX_RESULTS);
+
+        $body.empty();
+        if (!shown.length) {
+            $body.append('<tr><td colspan="6" class="text-center text-muted py-4">No products match your search.</td></tr>');
+        }
+
+        $.each(shown, function (_, p) {
+            var returnable = p.price !== null;       // an item with no price cannot be refunded
+            $body.append(
+                $('<tr>').attr('data-id', p.productId).html(
+                    '<td>' + highlight(p.productId, words) + '</td>' +
+                    '<td>' + highlight(p.productName, words) +
+                        (p.artist ? '<div class="text-muted small">' + highlight(p.artist, words) + '</div>' : '') + '</td>' +
+                    '<td>' + highlight(p.category, words) + '</td>' +
+                    '<td>' + highlight(p.format, words) + '</td>' +
+                    '<td>' + (returnable ? money(p.price) : '<span class="text-muted">Not priced</span>') + '</td>' +
+                    '<td class="text-end"><button type="button" class="btn btn-sm btn-dark return-add-btn"' +
+                        (returnable ? '' : ' disabled title="No price on file, so this cannot be returned"') +
+                        '>Return</button></td>'
+                )
+            );
+        });
+
+        var total = catalog.length;
+        if (matches.length > MAX_RESULTS) {
+            $count.text('Showing the first ' + MAX_RESULTS + ' of ' + matches.length + ' matches. Keep typing to narrow the list.');
+        } else if (words.length) {
+            $count.text(matches.length + ' of ' + total + ' products match.');
+        } else {
+            $count.text(total + ' products. Type to search.');
+        }
+    }
+
+    $search.on('input', render);
+
+    /* ---------- 4. hand the chosen product to the AngularJS list ---------- */
+    $body.on('click', '.return-add-btn', function () {
+        var $row = $(this).closest('tr');
+        var product = lookup($row.attr('data-id'));
+        if (!product || product.price === null) return;
+
+        $(document).trigger('returns:add', [product]);
+
+        $row.addClass('table-success');
+        setTimeout(function () { $row.removeClass('table-success'); }, 600);
+    });
+
+    window.ReturnSearch = { find: find, lookup: lookup };
+
+    load();
+});
