@@ -1,0 +1,424 @@
+(function (root, factory) {
+    if (typeof module === 'object' && module.exports) {
+        module.exports = factory();                 // Node
+    } else {
+        root.BillingReturnsJson = factory();        // browser
+    }
+}(typeof self !== 'undefined' ? self : this, function () {
+    'use strict';
+
+    var SCHEMA_VERSION = 1;
+    var MAX_QUANTITY = 99;
+
+    // Edit these lists to match the <select> options on the pages.
+    var SHIPPING_METHODS = {
+        'standard':  { label: 'Standard (5-7 business days)', cost: 4.99 },
+        'expedited': { label: 'Expedited (2-3 business days)', cost: 12.99 }
+    };
+    var RETURN_REASONS = ['defective', 'wrong-item', 'not-as-described', 'changed-mind', 'duplicate-purchase', 'other'];
+    var RETURN_CONDITIONS = ['unopened', 'like-new', 'used', 'damaged'];
+    var REFUND_PREFERENCES = ['original-payment', 'store-credit'];
+    var CARD_BRANDS = ['visa', 'mastercard', 'amex', 'discover'];
+    var STATES = ('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY ' +
+                  'NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY').split(' ');
+
+    var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var ZIP_PATTERN = /^\d{5}(-\d{4})?$/;
+
+    /* ---------- small helpers ---------- */
+    function has(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
+    function text(v) { return v == null ? '' : String(v).trim().replace(/\s+/g, ' '); }
+    function digits(v) { return v == null ? '' : String(v).replace(/\D/g, ''); }
+    function pick(a, b) { return a != null && a !== '' ? a : b; }
+    function toCents(n) { return Math.round(Number(n) * 100); }
+    function fromCents(c) { return c / 100; }
+    function isNumber(n) { return typeof n === 'number' && isFinite(n); }
+    function isQuantity(n) { return typeof n === 'number' && Math.floor(n) === n && n >= 1 && n <= MAX_QUANTITY; }
+    function notes(v) {   // keeps line breaks, tidies stray spaces/tabs
+        return v == null ? '' : String(v).replace(/\r\n?/g, '\n').replace(/[ \t]+/g, ' ').trim();
+    }
+    function collector() {
+        var errors = [];
+        return { errors: errors, fail: function (field, message) { errors.push({ field: field, message: message }); } };
+    }
+
+    /* ---------- card helpers (the number is only ever read here, never stored) ---------- */
+    function luhnValid(number) {
+        var d = digits(number), sum = 0, dbl = false, i, n;
+        if (d.length < 13 || d.length > 19) return false;
+        for (i = d.length - 1; i >= 0; i--) {
+            n = d.charCodeAt(i) - 48;
+            if (dbl) { n *= 2; if (n > 9) n -= 9; }
+            sum += n;
+            dbl = !dbl;
+        }
+        return sum % 10 === 0;
+    }
+
+    function cardBrand(number) {
+        var d = digits(number);
+        if (/^4/.test(d)) return 'visa';
+        if (/^(5[1-5]|222[1-9]|22[3-9]\d|2[3-6]\d\d|27[01]\d|2720)/.test(d)) return 'mastercard';
+        if (/^3[47]/.test(d)) return 'amex';
+        if (/^(6011|65|64[4-9])/.test(d)) return 'discover';
+        return '';
+    }
+
+    // known brand + right length + passes the Luhn check
+    function cardNumberValid(number) {
+        var d = digits(number), brand = cardBrand(d);
+        if (!brand || !luhnValid(d)) return false;
+        if (brand === 'amex') return d.length === 15;
+        if (brand === 'visa') return d.length === 13 || d.length === 16 || d.length === 19;
+        return d.length === 16;
+    }
+
+    // Accepts values.expiry as "MM/YY" or "MM/YYYY", or values.expMonth + values.expYear.
+    function parseExpiry(values) {
+        var m, month, year;
+        if (values.expiry != null && values.expiry !== '') {
+            m = /^\s*(\d{1,2})\s*[\/\-]\s*(\d{2}|\d{4})\s*$/.exec(String(values.expiry));
+            if (!m) return null;
+            month = Number(m[1]);
+            year = Number(m[2]);
+        } else if (values.expMonth != null && values.expYear != null && values.expMonth !== '' && values.expYear !== '') {
+            month = Number(values.expMonth);
+            year = Number(values.expYear);
+        } else {
+            return null;
+        }
+        if (year < 100) year += 2000;
+        if (!isFinite(month) || !isFinite(year) || Math.floor(month) !== month || Math.floor(year) !== year) return null;
+        return { month: month, year: year };
+    }
+
+    // A card works through the end of its expiry month, and not more than 20 years from now.
+    function expiryValid(month, year, now) {
+        now = now || new Date();
+        var thisYear = now.getFullYear(), thisMonth = now.getMonth() + 1;
+        if (month < 1 || month > 12) return false;
+        if (year < thisYear || year > thisYear + 20) return false;
+        return year > thisYear || month >= thisMonth;
+    }
+
+    function securityCodeValid(code, brand) {
+        var d = String(code == null ? '' : code);
+        if (!/^\d+$/.test(d)) return false;
+        return brand === 'amex' ? d.length === 4 : (brand ? d.length === 3 : (d.length === 3 || d.length === 4));
+    }
+
+    /* =====================================================================
+       BILLING
+       ===================================================================== */
+
+    // What the shopper typed. values: fullName, street, city, state, zip, cardNumber,
+    // expiry ("MM/YY") or expMonth + expYear, cvv, shippingMethod.
+    // cartItems is optional; if you pass it, an empty cart is reported too.
+    function checkBillingForm(values, cartItems, settings) {
+        values = values || {};
+        var c = collector(), fail = c.fail;
+        var now = settings && settings.now;
+
+        function required(field, label, max) {
+            var v = text(values[field]);
+            if (!v) fail(field, label + ' is required.');
+            else if (v.length > max) fail(field, label + ' must be ' + max + ' characters or fewer.');
+        }
+        required('fullName', 'Full name', 100);
+        required('street', 'Street address', 100);
+        required('city', 'City', 100);
+        if (STATES.indexOf(text(values.state).toUpperCase()) === -1) fail('state', 'Choose a valid 2-letter state.');
+        if (!ZIP_PATTERN.test(text(values.zip))) fail('zip', 'Enter a 5-digit ZIP code.');
+
+        var number = digits(values.cardNumber), brand = cardBrand(number);
+        if (!number) fail('cardNumber', 'Card number is required.');
+        else if (!cardNumberValid(number)) fail('cardNumber', 'Enter a valid Visa, Mastercard, American Express or Discover number.');
+
+        var exp = parseExpiry(values);
+        if (!exp) fail('expiry', 'Enter the expiration date as MM/YY.');
+        else if (!expiryValid(exp.month, exp.year, now)) fail('expiry', 'That card has expired or the date is not valid.');
+
+        if (!securityCodeValid(values.cvv, brand)) {
+            fail('cvv', brand === 'amex' ? 'Enter the 4-digit security code.' : 'Enter the 3-digit security code.');
+        }
+        if (!has(SHIPPING_METHODS, text(values.shippingMethod))) fail('shippingMethod', 'Choose a shipping method.');
+        if (cartItems !== undefined && (!cartItems || !cartItems.length)) fail('cart', 'Your cart is empty.');
+        return c.errors;
+    }
+
+    // Turns the typed values and the cart into the billing document.
+    // cartItems: what getCartItems() returns in cart.js (trackId, title, price, quantity),
+    // or the same fields named productId / description. Totals are worked out in whole cents.
+    function buildBilling(values, cartItems, settings) {
+        values = values || {};
+        settings = settings || {};
+        var number = digits(values.cardNumber);
+        var numberOk = cardNumberValid(number);
+        var exp = parseExpiry(values) || { month: 0, year: 0 };
+        var shippingKey = text(values.shippingMethod);
+        var shippingCents = has(SHIPPING_METHODS, shippingKey) ? toCents(SHIPPING_METHODS[shippingKey].cost) : 0;
+
+        var subtotalCents = 0, units = 0;
+        var items = (cartItems || []).map(function (item) {
+            var qty = Number(item.quantity);
+            var lineCents = toCents(item.price) * qty;
+            subtotalCents += isFinite(lineCents) ? lineCents : 0;
+            units += isFinite(qty) ? qty : 0;
+            return {
+                productId: text(pick(item.productId, item.trackId)),
+                description: text(pick(item.description, item.title)),
+                unitPrice: fromCents(toCents(item.price)),
+                quantity: qty,
+                lineTotal: fromCents(lineCents)
+            };
+        });
+
+        return {
+            schemaVersion: SCHEMA_VERSION,
+            createdAt: settings.createdAt || new Date().toISOString(),
+            customer: { fullName: text(values.fullName) },
+            billingAddress: {
+                street: text(values.street),
+                city: text(values.city),
+                state: text(values.state).toUpperCase(),
+                zip: text(values.zip)
+            },
+            payment: {
+                method: 'credit-card',
+                // only the safe parts survive; a number that fails the check leaves these blank
+                cardBrand: numberOk ? cardBrand(number) : '',
+                cardLast4: numberOk ? number.slice(-4) : '',
+                expMonth: exp.month,
+                expYear: exp.year
+            },
+            order: {
+                items: items,
+                itemCount: units,
+                subtotal: fromCents(subtotalCents),
+                shipping: { method: shippingKey, cost: fromCents(shippingCents) },
+                total: fromCents(subtotalCents + shippingCents)
+            }
+        };
+    }
+
+    // Looks through a whole document for anything that looks like card data.
+    function findCardData(value, path, found) {
+        var key, i;
+        if (Array.isArray(value)) {
+            for (i = 0; i < value.length; i++) findCardData(value[i], path + '[' + i + ']', found);
+        } else if (value && typeof value === 'object') {
+            for (key in value) {
+                if (!has(value, key)) continue;
+                if (/^(card_?number|number|pan|cvv|cvc|csc|security_?code)$/i.test(key)) found.push(path + '.' + key);
+                findCardData(value[key], path + '.' + key, found);
+            }
+        } else if (typeof value === 'string' && /^[\d\s-]{13,23}$/.test(value) && luhnValid(value)) {
+            found.push(path);
+        }
+        return found;
+    }
+
+    function checkBillingDocument(doc, settings) {
+        var c = collector(), fail = c.fail;
+        var now = settings && settings.now;
+        if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+            return [{ field: 'document', message: 'The billing details must be a JSON object.' }];
+        }
+        if (doc.schemaVersion !== SCHEMA_VERSION) fail('schemaVersion', 'schemaVersion must be ' + SCHEMA_VERSION + '.');
+        if (typeof doc.createdAt !== 'string' || isNaN(Date.parse(doc.createdAt))) fail('createdAt', 'createdAt must be an ISO date-time.');
+
+        var customer = doc.customer, address = doc.billingAddress, payment = doc.payment, order = doc.order;
+        if (!customer || typeof customer !== 'object' || !text(customer.fullName)) fail('fullName', 'Full name is required.');
+        else if (customer.fullName.length > 100) fail('fullName', 'Full name must be 100 characters or fewer.');
+
+        if (!address || typeof address !== 'object') {
+            fail('billingAddress', 'Billing address is missing.');
+        } else {
+            if (!text(address.street)) fail('street', 'Street address is required.');
+            if (!text(address.city)) fail('city', 'City is required.');
+            if (STATES.indexOf(address.state) === -1) fail('state', 'Choose a valid 2-letter state.');
+            if (!ZIP_PATTERN.test(String(address.zip))) fail('zip', 'Enter a 5-digit ZIP code.');
+        }
+
+        if (!payment || typeof payment !== 'object') {
+            fail('payment', 'Payment details are missing.');
+        } else {
+            if (payment.method !== 'credit-card') fail('method', 'Payment method must be credit-card.');
+            if (CARD_BRANDS.indexOf(payment.cardBrand) === -1) fail('cardBrand', 'Enter a valid card number.');
+            if (!/^\d{4}$/.test(String(payment.cardLast4))) fail('cardLast4', 'Enter a valid card number.');
+            if (!isNumber(payment.expMonth) || !isNumber(payment.expYear) || !expiryValid(payment.expMonth, payment.expYear, now)) {
+                fail('expiry', 'That card has expired or the date is not valid.');
+            }
+        }
+
+        if (!order || typeof order !== 'object' || !Array.isArray(order.items) || order.items.length === 0) {
+            fail('cart', 'Your cart is empty.');
+        } else {
+            var subtotalCents = 0, units = 0, bad = false;
+            order.items.forEach(function (item, i) {
+                var name = 'items[' + i + ']';
+                if (!item || typeof item !== 'object') { fail(name, 'Each order item must be an object.'); bad = true; return; }
+                if (!text(item.productId)) fail(name + '.productId', 'Each item needs a product ID.');
+                if (!text(item.description)) fail(name + '.description', 'Each item needs a description.');
+                if (!isNumber(item.unitPrice) || item.unitPrice < 0) { fail(name + '.unitPrice', 'Each item needs a price.'); bad = true; }
+                if (!isQuantity(item.quantity)) { fail(name + '.quantity', 'Quantity must be a whole number from 1 to ' + MAX_QUANTITY + '.'); bad = true; }
+                if (!bad && toCents(item.lineTotal) !== toCents(item.unitPrice) * item.quantity) {
+                    fail(name + '.lineTotal', 'The line total does not match price x quantity.');
+                }
+                if (isNumber(item.unitPrice) && isQuantity(item.quantity)) {
+                    subtotalCents += toCents(item.unitPrice) * item.quantity;
+                    units += item.quantity;
+                }
+            });
+            if (!bad) {
+                if (order.itemCount !== units) fail('itemCount', 'itemCount does not match the items.');
+                if (toCents(order.subtotal) !== subtotalCents) fail('subtotal', 'The subtotal does not match the items.');
+                var ship = order.shipping;
+                if (!ship || typeof ship !== 'object' || !has(SHIPPING_METHODS, ship.method)) {
+                    fail('shippingMethod', 'Choose a shipping method.');
+                } else if (toCents(ship.cost) !== toCents(SHIPPING_METHODS[ship.method].cost)) {
+                    fail('shippingCost', 'The shipping cost does not match the shipping method.');
+                } else if (toCents(order.total) !== subtotalCents + toCents(ship.cost)) {
+                    fail('total', 'The total does not match the subtotal plus shipping.');
+                }
+            }
+        }
+
+        var leaks = findCardData(doc, 'document', []);
+        if (leaks.length) fail('cardData', 'The document must not contain a full card number or security code.');
+        return c.errors;
+    }
+
+    /* =====================================================================
+       RETURNS
+       ===================================================================== */
+
+    // values: fullName, email, refundPreference, comments,
+    //   items: [ { productId, productName (or title / description), price, quantity,
+    //              reason, condition, details } ]
+    // reason / condition may instead be given once on values for the whole return.
+    function checkReturnForm(values) {
+        values = values || {};
+        var c = collector(), fail = c.fail;
+
+        var name = text(values.fullName);
+        if (!name) fail('fullName', 'Full name is required.');
+        else if (name.length > 100) fail('fullName', 'Full name must be 100 characters or fewer.');
+        var email = text(values.email);
+        if (!EMAIL_PATTERN.test(email) || email.length > 254) fail('email', 'A valid email address is required.');
+
+        var items = Array.isArray(values.items) ? values.items : [];
+        if (items.length === 0) fail('items', 'Add at least one product to return.');
+        items.forEach(function (item, i) {
+            var label = text(pick(item.productName, pick(item.title, item.description))) || 'Item ' + (i + 1);
+            var reason = text(pick(item.reason, values.reason)), condition = text(pick(item.condition, values.condition));
+            var qty = item.quantity == null || item.quantity === '' ? 1 : Number(item.quantity);
+            if (!isNumber(Number(item.price)) || item.price === null || item.price === '' || Number(item.price) < 0) {
+                fail('items[' + i + '].price', label + ' has no price on file, so it cannot be returned.');
+            }
+            if (!isQuantity(qty)) fail('items[' + i + '].quantity', label + ': quantity must be a whole number from 1 to ' + MAX_QUANTITY + '.');
+            if (RETURN_REASONS.indexOf(reason) === -1) fail('items[' + i + '].reason', label + ': choose a reason for the return.');
+            if (RETURN_CONDITIONS.indexOf(condition) === -1) fail('items[' + i + '].condition', label + ': choose the product condition.');
+            if (reason === 'other' && !text(item.details)) fail('items[' + i + '].details', label + ': please explain the reason.');
+        });
+        if (has(values, 'refundPreference') && values.refundPreference !== '' &&
+            REFUND_PREFERENCES.indexOf(text(values.refundPreference)) === -1) {
+            fail('refundPreference', 'Choose how you want to be refunded.');
+        }
+        if (notes(values.comments).length > 500) fail('comments', 'Comments must be 500 characters or fewer.');
+        return c.errors;
+    }
+
+    function buildReturn(values, settings) {
+        values = values || {};
+        settings = settings || {};
+        var totalCents = 0;
+        var items = (Array.isArray(values.items) ? values.items : []).map(function (item) {
+            var qty = item.quantity == null || item.quantity === '' ? 1 : Number(item.quantity);
+            var priceCents = item.price === null || item.price === '' ? NaN : toCents(item.price);
+            var out = {
+                productId: text(pick(item.productId, item.trackId)),
+                productName: text(pick(item.productName, pick(item.title, item.description))),
+                category: text(item.category),
+                format: text(pick(item.format, item.unitOfMeasure)),
+                price: fromCents(priceCents),
+                quantity: qty,
+                reason: text(pick(item.reason, values.reason)),
+                condition: text(pick(item.condition, values.condition)),
+                details: notes(item.details)
+            };
+            if (text(item.image)) out.image = text(item.image);
+            if (isFinite(priceCents * qty)) totalCents += priceCents * qty;
+            return out;
+        });
+        return {
+            schemaVersion: SCHEMA_VERSION,
+            createdAt: settings.createdAt || new Date().toISOString(),
+            customer: { fullName: text(values.fullName), email: text(values.email).toLowerCase() },
+            items: items,
+            refundPreference: text(values.refundPreference) || REFUND_PREFERENCES[0],
+            comments: notes(values.comments),
+            totalRefund: fromCents(totalCents)
+        };
+    }
+
+    function checkReturnDocument(doc) {
+        var c = collector(), fail = c.fail;
+        if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+            return [{ field: 'document', message: 'The return request must be a JSON object.' }];
+        }
+        if (doc.schemaVersion !== SCHEMA_VERSION) fail('schemaVersion', 'schemaVersion must be ' + SCHEMA_VERSION + '.');
+        if (typeof doc.createdAt !== 'string' || isNaN(Date.parse(doc.createdAt))) fail('createdAt', 'createdAt must be an ISO date-time.');
+
+        var customer = doc.customer;
+        if (!customer || typeof customer !== 'object' || !text(customer.fullName)) fail('fullName', 'Full name is required.');
+        else if (customer.fullName.length > 100) fail('fullName', 'Full name must be 100 characters or fewer.');
+        if (!customer || typeof customer.email !== 'string' || !EMAIL_PATTERN.test(customer.email) || customer.email.length > 254) {
+            fail('email', 'A valid email address is required.');
+        }
+
+        if (!Array.isArray(doc.items) || doc.items.length === 0) {
+            fail('items', 'Add at least one product to return.');
+        } else {
+            var totalCents = 0, bad = false;
+            doc.items.forEach(function (item, i) {
+                var name = 'items[' + i + ']';
+                if (!item || typeof item !== 'object') { fail(name, 'Each returned item must be an object.'); bad = true; return; }
+                if (!text(item.productId)) fail(name + '.productId', 'Each item needs a product ID.');
+                if (!text(item.productName)) fail(name + '.productName', 'Each item needs a product name.');
+                if (!isNumber(item.price) || item.price < 0) { fail(name + '.price', 'Each item needs a price.'); bad = true; }
+                if (!isQuantity(item.quantity)) { fail(name + '.quantity', 'Quantity must be a whole number from 1 to ' + MAX_QUANTITY + '.'); bad = true; }
+                if (RETURN_REASONS.indexOf(item.reason) === -1) fail(name + '.reason', 'Choose a reason for the return.');
+                if (RETURN_CONDITIONS.indexOf(item.condition) === -1) fail(name + '.condition', 'Choose the product condition.');
+                if (typeof item.details !== 'string' || item.details.length > 300) fail(name + '.details', 'Details must be text of 300 characters or fewer.');
+                else if (item.reason === 'other' && !text(item.details)) fail(name + '.details', 'Please explain the reason.');
+                if (isNumber(item.price) && isQuantity(item.quantity)) totalCents += toCents(item.price) * item.quantity;
+            });
+            if (!bad && toCents(doc.totalRefund) !== totalCents) fail('totalRefund', 'The total refund does not match the items.');
+        }
+        if (REFUND_PREFERENCES.indexOf(doc.refundPreference) === -1) fail('refundPreference', 'Choose how you want to be refunded.');
+        if (typeof doc.comments !== 'string' || doc.comments.length > 500) fail('comments', 'Comments must be text of 500 characters or fewer.');
+        return c.errors;
+    }
+
+    // Pretty-printed JSON, the same text shown on a page or saved to a file.
+    function serialize(doc) { return JSON.stringify(doc, null, 2); }
+
+    return {
+        SCHEMA_VERSION: SCHEMA_VERSION,
+        SHIPPING_METHODS: SHIPPING_METHODS,
+        RETURN_REASONS: RETURN_REASONS,
+        RETURN_CONDITIONS: RETURN_CONDITIONS,
+        REFUND_PREFERENCES: REFUND_PREFERENCES,
+        luhnValid: luhnValid,
+        cardBrand: cardBrand,
+        cardNumberValid: cardNumberValid,
+        checkBillingForm: checkBillingForm,
+        buildBilling: buildBilling,
+        checkBillingDocument: checkBillingDocument,
+        checkReturnForm: checkReturnForm,
+        buildReturn: buildReturn,
+        checkReturnDocument: checkReturnDocument,
+        serialize: serialize
+    };
+}));
