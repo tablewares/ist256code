@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="returnsApp">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,7 +50,7 @@
     </nav>
 
     <!-- Returns Page -->
-    <main class="container my-5">
+    <main class="container my-5" ng-controller="ReturnsController">
         <div class="form-container mx-auto returns-container">
 
             <div class="text-center mb-4">
@@ -58,7 +58,10 @@
                 <p>Need to return something? Find your product and submit a return request below.</p>
             </div>
 
-            <form id="returnsForm" novalidate>
+            <div class="alert" ng-class="{'alert-success': success, 'alert-danger': !success}"
+                ng-show="message" ng-bind="message" role="alert" aria-live="polite"></div>
+
+            <form id="returnsForm" name="returnsForm" ng-submit="submitReturn()" novalidate>
 
                 <!-- Product Search -->
                 <section class="mb-4">
@@ -94,7 +97,9 @@
                                     <div class="col-md-3 text-md-end">
                                         <input class="form-check-input product-select"
                                             type="radio" name="productId"
-                                            id="productHeadphones" value="headphones" required>
+                                            id="productHeadphones" value="headphones" required
+                                            ng-model="returnDetails.productId" ng-change="returnChanged()"
+                                            ng-class="{'is-invalid': submitted && errors.productId}" ng-attr-aria-invalid="{{!!(submitted && errors.productId)}}">
                                         <label class="form-check-label ms-1"
                                             for="productHeadphones">Select</label>
                                     </div>
@@ -120,7 +125,9 @@
                                     <div class="col-md-3 text-md-end">
                                         <input class="form-check-input product-select"
                                             type="radio" name="productId"
-                                            id="productSpeaker" value="speaker" required>
+                                            id="productSpeaker" value="speaker" required
+                                            ng-model="returnDetails.productId" ng-change="returnChanged()"
+                                            ng-class="{'is-invalid': submitted && errors.productId}" ng-attr-aria-invalid="{{!!(submitted && errors.productId)}}">
                                         <label class="form-check-label ms-1"
                                             for="productSpeaker">Select</label>
                                     </div>
@@ -146,7 +153,9 @@
                                     <div class="col-md-3 text-md-end">
                                         <input class="form-check-input product-select"
                                             type="radio" name="productId"
-                                            id="productVinyl" value="vinyl" required>
+                                            id="productVinyl" value="vinyl" required
+                                            ng-model="returnDetails.productId" ng-change="returnChanged()"
+                                            ng-class="{'is-invalid': submitted && errors.productId}" ng-attr-aria-invalid="{{!!(submitted && errors.productId)}}">
                                         <label class="form-check-label ms-1"
                                             for="productVinyl">Select</label>
                                     </div>
@@ -156,7 +165,7 @@
 
                     </div>
 
-                    <div class="invalid-feedback" id="productFeedback">
+                    <div class="invalid-feedback" id="productFeedback" ng-class="{'d-block': submitted && errors.productId}">
                         Please select a product to return.
                     </div>
                 </section>
@@ -170,7 +179,9 @@
                     <div class="mb-3">
                         <label for="returnReason" class="form-label">Reason for Return</label>
                         <select class="form-select" id="returnReason"
-                            name="returnReason" required>
+                            name="returnReason" required
+                            ng-model="returnDetails.returnReason" ng-change="returnChanged()"
+                            ng-class="{'is-invalid': submitted && errors.returnReason}" ng-attr-aria-invalid="{{!!(submitted && errors.returnReason)}}">
                             <option value="">Choose a reason</option>
                             <option value="damaged">Item arrived damaged</option>
                             <option value="defective">Product is defective</option>
@@ -186,7 +197,9 @@
                     <div class="mb-3">
                         <label for="productCondition" class="form-label">Product Condition</label>
                         <select class="form-select" id="productCondition"
-                            name="productCondition" required>
+                            name="productCondition" required
+                            ng-model="returnDetails.productCondition" ng-change="returnChanged()"
+                            ng-class="{'is-invalid': submitted && errors.productCondition}" ng-attr-aria-invalid="{{!!(submitted && errors.productCondition)}}">
                             <option value="">Choose product condition</option>
                             <option value="new">New / Unused</option>
                             <option value="opened">Opened but unused</option>
@@ -201,7 +214,9 @@
                     <div class="mb-3">
                         <label for="orderNumber" class="form-label">Order Number</label>
                         <input type="text" class="form-control" id="orderNumber"
-                            name="orderNumber" placeholder="Enter your order number" required>
+                            name="orderNumber" placeholder="Enter your order number" required
+                            ng-model="returnDetails.orderNumber" ng-change="returnChanged()"
+                            ng-class="{'is-invalid': submitted && errors.orderNumber}" ng-attr-aria-invalid="{{!!(submitted && errors.orderNumber)}}">
                         <div class="invalid-feedback">
                             Please enter your order number.
                         </div>
@@ -213,9 +228,18 @@
                         </label>
                         <textarea class="form-control" id="returnComments"
                             name="comments" rows="4"
-                            placeholder="Tell us more about your return..."></textarea>
+                            placeholder="Tell us more about your return..."
+                            ng-model="returnDetails.comments" ng-change="returnChanged()"></textarea>
                     </div>
                 </section>
+
+                <div class="card p-3 mb-3" ng-show="returnDetails.productId || returnDetails.orderNumber">
+                    <h5>Return Summary</h5>
+                    <p class="mb-1">Product: <span ng-bind="productName()"></span></p>
+                    <p class="mb-1">Reason: <span ng-bind="reasonLabel()"></span></p>
+                    <p class="mb-1">Condition: <span ng-bind="conditionLabel()"></span></p>
+                    <p class="mb-0">Order: <span ng-bind="returnDetails.orderNumber"></span></p>
+                </div>
 
                 <button type="submit" class="btn btn-sw w-100">
                     Submit Return Request
@@ -231,5 +255,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="returns.js"></script>
 </body>
 </html>
