@@ -85,3 +85,87 @@ body {
         padding: 40px 15px;
     }
 }
+
+/* Event Registration Page */
+
+.event-registration-container {
+    max-width: 750px;
+    padding: 35px;
+}
+
+.event-registration-container h1 {
+    color: #212529;
+    font-weight: bold;
+}
+
+.event-registration-container h4 {
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.event-registration-container .form-control,
+.event-registration-container .form-select {
+    padding: 10px 12px;
+}
+
+.event-registration-container .form-check {
+    margin-bottom: 8px;
+}
+
+.event-registration-container textarea {
+    resize: vertical;
+}
+
+.event-registration-container hr {
+    margin: 25px 0;
+}
+
+/* Billing Details Page */
+
+.billing-container,
+.returns-container {
+    max-width: 850px;
+    padding: 30px;
+}
+
+.billing-container h4,
+.returns-container h4 {
+    font-weight: 600;
+}
+
+.billing-container .form-control,
+.billing-container .form-select,
+.returns-container .form-control,
+.returns-container .form-select {
+    padding: 10px 12px;
+}
+
+.billing-container .card,
+.returns-container .card {
+    border-radius: 10px;
+}
+
+/* Returns Page */
+
+.return-product-card {
+    transition: box-shadow 0.2s ease;
+}
+
+.return-product-card:hover {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+}
+
+.return-product-card img {
+    max-height: 120px;
+    object-fit: contain;
+}
+
+/* Responsive Form Styling */
+
+@media (max-width: 576px) {
+    .billing-container,
+    .returns-container,
+    .event-registration-container {
+        padding: 20px 16px;
+    }
+}
