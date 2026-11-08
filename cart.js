@@ -3,7 +3,15 @@
  // Adam's search buttons can call addToCart(track) or addToCart(track, quantity).
  // Track fields: trackId, title, category, format, price, info (optional).
 
-const cart = [];
+const cart = (function() {
+    try {
+        const savedItems = JSON.parse(localStorage.getItem("soundwaveCartItems") || "[]");
+        return Array.isArray(savedItems) ? savedItems : [];
+    } catch (error) {
+        console.error("Could not load saved cart items:", error);
+        return [];
+    }
+})();
 
 function showCartMessage(text, type) {
     const message = document.getElementById("message");
@@ -112,6 +120,12 @@ function updateCartQuantity(trackId, quantity) {
 }
 
 function renderCart() {
+    try {
+        localStorage.setItem("soundwaveCartItems", JSON.stringify(getCartItems()));
+    } catch (error) {
+        console.error("Could not save cart items in this browser:", error);
+    }
+
     const cartBody = document.getElementById("cartBody");
     cartBody.textContent = "";
 

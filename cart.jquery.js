@@ -7,14 +7,13 @@
      2. Live search the collection (title, artist, genre, format, ID)
      3. Render matches with an "Add" button that calls addToCart() from cart.js
      4. Show the cart as JSON, exactly as it will be sent
-     5. AJAX POST the cart JSON to a RESTful API (/api/cart – built later)
+     5. Keep the cart in browser localStorage for billing
 
    Depends on (loaded before this file): jQuery, cart.js
      cart.js globals used: addToCart(track, qty), getCartItems(), showCartMessage(text, type)
    ===================================================================== */
 $(function () {
     var CATALOG_URL = 'products.json';
-    var CART_API = '/api/cart';       // RESTful endpoint to be built in a later assignment
     var MAX_RESULTS = 20;             // keep the results table short; search narrows it
     var catalog = [];                 // normalized copy of products.json
 
@@ -190,7 +189,8 @@ $(function () {
     }
 
     function updateCartJson() {
-        $('#cartJson').text(JSON.stringify(buildPayload(getCartItems()), null, 2));
+        var payload = buildPayload(getCartItems());
+        $('#cartJson').text(JSON.stringify(payload, null, 2));
     }
 
     // cart.js redraws #cartBody whenever the cart changes, so watch it to keep the JSON in sync.
@@ -198,40 +198,17 @@ $(function () {
         { childList: true, subtree: true });
     updateCartJson();
 
-    /* ---------- 5. AJAX: send the cart JSON to the (future) RESTful API ---------- */
+    /* ---------- 5. Continue using the cart saved by cart.js in localStorage ---------- */
     $('#checkoutBtn').on('click', function () {
         var items = getCartItems();
         if (!items.length) {
-            showCartMessage('Your cart is empty. Add at least one track before sending.', 'danger');
+            showCartMessage('Your cart is empty. Add at least one track before continuing.', 'danger');
             return;
         }
 
         var payload = buildPayload(items);
-        payload.submittedAt = new Date().toISOString();
-
-        var $btn = $(this);
-        var label = $btn.text();
-        $btn.prop('disabled', true).text('Sending...');
-
-        $.ajax({
-            url: CART_API,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(payload)
-        }).done(function () {
-            showCartMessage('Cart sent to the API: ' + payload.itemCount + ' item(s), $' + payload.total.toFixed(2) + '.', 'success');
-        }).fail(function (xhr) {
-            if (xhr.status === 0 || xhr.status === 404 || xhr.status === 405 || xhr.status === 501) {
-                // Expected for now: the RESTful API is a later assignment. Static servers
-                // (Live Server, GitHub Pages, python http.server) answer 405 to a POST.
-                showCartMessage('The cart JSON is ready, but the API (' + CART_API + ') is not available yet.', 'warning');
-            } else {
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'The API returned an error (' + xhr.status + ').';
-                showCartMessage(msg, 'danger');
-            }
-        }).always(function () {
-            $btn.prop('disabled', false).text(label);
-        });
+        showCartMessage('Cart saved in this browser: ' + payload.itemCount + ' item(s), $' + payload.total.toFixed(2) + '. Opening billing...', 'success');
+        window.location.href = 'billing.html';
     });
 
     loadCatalog();

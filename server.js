@@ -296,6 +296,82 @@ app.post('/api/register', (req, res) => {
   res.status(201).json({ success: true, message: 'Registration successful!', data: doc });
 });
 
+const DATA_FILE = path.join(__dirname, 'billings.json');
+const SHIPPING_COST = 4.99;
+
+const cardBrand = (number) => {
+  if (/^4/.test(number)) return 'visa';
+  if (/^(5[1-5]|2(2[2-9]|[3-6]\d|7[01]|720))/.test(number)) return 'mastercard';
+  if (/^3[47]/.test(number)) return 'amex';
+  if (/^(6011|65|64[4-9])/.test(number)) return 'discover';
+  return 'unknown';
+};
+
+app.post('/api/billing', (req, res) => {
+  const items = Array.isArray(req.body && req.body.items) ? req.body.items : [];
+  if (!items.length) {
+    return res.status(400).json({ success: false, message: 'Add items to your cart before submitting billing.' });
+  }
+
+  const billingData = req.body || {};
+  const cardNumber = String(billingData.cardNumber || '').replace(/[ -]/g, '');
+  const expiration = /^(\d{2})\/(\d{2})$/.exec(billingData.expirationDate || '');
+  const orderItems = items.map((item) => {
+    const unitPrice = Math.round(Number(item.price) * 100) / 100;
+    return {
+      productId: String(item.trackId),
+      description: item.title,
+      unitPrice,
+      quantity: Number(item.quantity),
+      lineTotal: Math.round(unitPrice * Number(item.quantity) * 100) / 100
+    };
+  });
+  const subtotalCents = orderItems.reduce((sum, item) => sum + Math.round(item.lineTotal * 100), 0);
+  const subtotal = subtotalCents / 100;
+  const doc = {
+    createdAt: new Date().toISOString(),
+    customer: { fullName: billingData.fullName || '' },
+    billingAddress: {
+      street: billingData.address || '',
+      city: billingData.city || '',
+      state: billingData.state || '',
+      zip: billingData.zipCode || ''
+    },
+    payment: {
+      method: 'credit-card',
+      cardBrand: cardBrand(cardNumber),
+      cardLast4: cardNumber.slice(-4),
+      expMonth: expiration ? Number(expiration[1]) : 0,
+      expYear: expiration ? 2000 + Number(expiration[2]) : 0
+    },
+    order: {
+      items: orderItems,
+      itemCount: orderItems.reduce((count, item) => count + item.quantity, 0),
+      subtotal,
+      shipping: { method: 'standard', cost: SHIPPING_COST },
+      total: Math.round((subtotal + SHIPPING_COST) * 100) / 100
+    }
+  };
+
+  try {
+    const records = fs.existsSync(DATA_FILE)
+      ? JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))
+      : [];
+    if (!Array.isArray(records)) throw new Error('billings.json is not a JSON array.');
+    records.push(doc);
+    fs.writeFileSync(DATA_FILE, JSON.stringify(records, null, 2));
+  } catch (err) {
+    console.error('error saving billing data:', err);
+    return res.status(500).json({ success: false, message: 'Failed to save billing data.' });
+  }
+
+  res.status(201).json({
+    success: true,
+    message: 'Billing details successfully saved.',
+    data: doc
+  });
+});
+
 // start Server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

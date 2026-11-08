@@ -38,5 +38,25 @@
     "favoriteGenre": "r-and-b",
     "specialRequests": "",
     "updates": "no"
+  },
+  {
+    "fullName": "234",
+    "email": "234@gmail.com",
+    "ticketType": "general",
+    "attendance": "in-person",
+    "session": "artist-panel",
+    "favoriteGenre": "rock",
+    "specialRequests": "",
+    "updates": "no"
+  },
+  {
+    "fullName": "name name",
+    "email": "name@gmail.com",
+    "ticketType": "general",
+    "attendance": "in-person",
+    "session": "opening",
+    "favoriteGenre": "alternative",
+    "specialRequests": "name",
+    "updates": "no"
   }
 ]

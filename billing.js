@@ -1,12 +1,33 @@
-// Aidan: AngularJS billing validation. Demo only; no payment data is saved or sent.
+// Aidan: AngularJS billing validation. Demo only; the API saves the order summary.
 var billingApp = angular.module("billingApp", []);
 
-billingApp.controller("BillingController", function ($scope) {
+billingApp.controller("BillingController", function ($scope, $http) {
     $scope.billing = {};
     $scope.errors = {};
     $scope.message = "";
     $scope.submitted = false;
     $scope.success = false;
+    $scope.cartItems = [];
+    $scope.shippingCost = 4.99;
+
+    try {
+        var savedItems = JSON.parse(localStorage.getItem("soundwaveCartItems") || "[]");
+        if (Array.isArray(savedItems)) {
+            $scope.cartItems = savedItems;
+        }
+    } catch (error) {
+        console.error("Could not load cart items saved in this browser:", error);
+    }
+
+    $scope.cartSubtotal = function () {
+        return $scope.cartItems.reduce(function (sum, item) {
+            return sum + Math.round(Number(item.price) * 100) * Number(item.quantity);
+        }, 0) / 100;
+    };
+
+    $scope.cartTotal = function () {
+        return $scope.cartSubtotal() + $scope.shippingCost;
+    };
 
     $scope.validateBilling = function () {
         var billing = $scope.billing;
@@ -26,7 +47,6 @@ billingApp.controller("BillingController", function ($scope) {
             $scope.errors.zipCode = "Enter a 5-digit ZIP code or ZIP+4.";
         }
 
-        // Accept 13-19 digits, with optional spaces or hyphens between groups.
         var cardNumber = billing.cardNumber || "";
         var digits = cardNumber.replace(/[ -]/g, "");
         if (!/^\d+(?:[ -]\d+)*$/.test(cardNumber) || !/^\d{13,19}$/.test(digits)) {
@@ -71,13 +91,35 @@ billingApp.controller("BillingController", function ($scope) {
         return "";
     };
 
-    // This is the form's only submission handler. AngularJS prevents navigation.
+    // Updated submission handler with $http call
     $scope.submitBilling = function () {
         $scope.submitted = true;
-        $scope.success = $scope.validateBilling();
-        if ($scope.success) {
-            $scope.message = "Your demo billing details passed validation. No payment has been processed and no information has been sent or saved.";
+        if (!$scope.cartItems.length) {
+            $scope.success = false;
+            $scope.message = "Your cart is empty. Add items before submitting billing.";
+            return;
+        }
+        var isValid = $scope.validateBilling();
+
+        if (isValid) {
+            $scope.message = "Validating and saving...";
+            
+            // Send data to the Node.js API endpoint
+            var billingSubmission = angular.copy($scope.billing);
+            billingSubmission.items = $scope.cartItems;
+            $http.post('/api/billing', billingSubmission)
+                .then(function (response) {
+                    $scope.success = true;
+                    $scope.message = response.data.message || "Billing details saved successfully!";
+                    // Optionally reset form: $scope.billing = {}; $scope.submitted = false;
+                })
+                .catch(function (error) {
+                    $scope.success = false;
+                    $scope.message = "Server error: Could not save billing details. Please try again.";
+                    console.error("Submission error:", error);
+                });
         } else {
+            $scope.success = false;
             $scope.message = "Please correct the highlighted billing fields.";
         }
     };

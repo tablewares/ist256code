@@ -182,32 +182,27 @@
                     <h4 class="mb-3">Order Summary</h4>
 
                     <div class="card p-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Sample Music Track A</span>
-                            <span>$9.99</span>
+                        <div class="d-flex justify-content-between mb-2" ng-repeat="item in cartItems">
+                            <span ng-bind="item.title + ' x ' + item.quantity"></span>
+                            <span ng-bind="'$' + (item.price * item.quantity).toFixed(2)"></span>
                         </div>
-
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Sample Music Track B</span>
-                            <span>$4.99</span>
-                        </div>
+                        <p class="text-muted mb-2" ng-if="!cartItems.length">No items saved from your cart.</p>
 
                         <hr>
 
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Shipping</span>
-                            <span>$0.00</span>
+                            <span>Standard shipping</span>
+                            <span ng-bind="'$' + shippingCost.toFixed(2)"></span>
                         </div>
 
                         <div class="d-flex justify-content-between fw-bold">
                             <span>Total</span>
-                            <span>$14.98</span>
+                            <span ng-bind="'$' + cartTotal().toFixed(2)"></span>
                         </div>
                     </div>
 
                     <p class="text-muted small mt-2">
-                        Sample order information for demonstration. Connect this section
-                        to the shopping cart data.
+                        Order items are loaded from your saved cart.
                     </p>
                 </section>
 
