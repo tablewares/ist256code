@@ -160,6 +160,32 @@ body {
     object-fit: contain;
 }
 
+
+/* Billing and Returns Buttons */
+
+.billing-container .btn-primary,
+.returns-container .btn-primary {
+    background-color: #5b3c88;
+    border-color: #5b3c88;
+    color: white;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.billing-container .btn-primary:hover,
+.returns-container .btn-primary:hover {
+    background-color: #452d69;
+    border-color: #452d69;
+}
+
+.billing-container .btn-primary:focus,
+.returns-container .btn-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(91, 60, 136, 0.25);
+}
+
+
 /* Responsive Form Styling */
 
 @media (max-width: 576px) {
