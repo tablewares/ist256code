@@ -35,7 +35,7 @@ billingApp.controller("BillingController", function ($scope, $http) {
         var requiredFields = ["fullName", "email", "address", "city", "state", "zipCode", "cardName"];
         for (var i = 0; i < requiredFields.length; i++) {
             var field = requiredFields[i];
-            if (!billing[field] || billing[field].trim() === "") {
+            if (!billing[field] || String(billing[field]).trim() === "") {
                 $scope.errors[field] = "This field is required.";
             }
         }
