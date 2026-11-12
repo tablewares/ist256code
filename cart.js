@@ -1,20 +1,22 @@
 
- // Aidan: cart behavior and validation.
- // Adam's search buttons can call addToCart(track) or addToCart(track, quantity).
- // Track fields: trackId, title, category, format, price, info (optional).
+// Aidan: cart behavior and validation.
+// Cart items are stored in MongoDB.
+// The browser only stores the cart ID.
 
-const cart = (function() {
-    try {
-        const savedItems = JSON.parse(localStorage.getItem("soundwaveCartItems") || "[]");
-        return Array.isArray(savedItems) ? savedItems : [];
-    } catch (error) {
-        console.error("Could not load saved cart items:", error);
-        return [];
-    }
-})();
+let cart = [];
+let cartId = localStorage.getItem("soundwaveCartId");
+let cartReady = false;
+let saveQueue = Promise.resolve();
+
+// Create a unique cart ID for this browser if one does not exist.
+if (!cartId) {
+    cartId = crypto.randomUUID();
+    localStorage.setItem("soundwaveCartId", cartId);
+}
 
 function showCartMessage(text, type) {
     const message = document.getElementById("message");
+
     message.className = "alert alert-" + type;
     message.textContent = text;
 }
@@ -24,6 +26,98 @@ function validQuantity(quantity) {
     return Number.isInteger(number) && number > 0;
 }
 
+// Load the cart from MongoDB when the page opens.
+async function initializeCart() {
+    try {
+        let response = await fetch(
+            "/api/cart/" + encodeURIComponent(cartId)
+        );
+
+        if (response.status === 404) {
+            // Import any previously saved browser cart when creating
+            // this browser's MongoDB cart for the first time.
+            let oldItems = [];
+
+            try {
+                const savedItems = JSON.parse(
+                    localStorage.getItem("soundwaveCartItems") || "[]"
+                );
+
+                if (Array.isArray(savedItems)) {
+                    oldItems = savedItems;
+                }
+            } catch (error) {
+                console.error("Could not read old cart:", error);
+            }
+
+            response = await fetch("/api/cart", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    cartId,
+                    items: oldItems
+                })
+            });
+        }
+
+        if (!response.ok) {
+            throw new Error("Could not load your cart.");
+        }
+
+        const data = await response.json();
+
+        cart = Array.isArray(data.items) ? data.items : [];
+        cartReady = true;
+
+        // Remove the old browser-stored cart after successful migration.
+        localStorage.removeItem("soundwaveCartItems");
+
+        renderCart();
+
+    } catch (error) {
+        console.error("Could not load cart from MongoDB:", error);
+
+        showCartMessage(
+            "Your cart could not be loaded. Please refresh the page.",
+            "danger"
+        );
+    }
+}
+
+// Save cart changes to MongoDB.
+// Queue requests so rapid changes are saved in the correct order.
+function saveCart() {
+    if (!cartReady) return;
+
+    const items = getCartItems();
+
+    saveQueue = saveQueue.catch(() => {}).then(async () => {
+        const response = await fetch(
+            "/api/cart/" + encodeURIComponent(cartId),
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ items })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("Could not save your cart.");
+        }
+    }).catch(error => {
+        console.error("Could not save cart to MongoDB:", error);
+
+        showCartMessage(
+            "Your cart could not be saved. Please try again.",
+            "danger"
+        );
+    });
+}
+
 function validateCartTrack(track) {
     if (!track) return "Please select a track.";
 
@@ -31,6 +125,7 @@ function validateCartTrack(track) {
 
     for (let i = 0; i < requiredFields.length; i++) {
         const value = track[requiredFields[i]];
+
         if (typeof value !== "string" || value.trim() === "") {
             return "The track needs an ID, title, genre, and format.";
         }
@@ -49,6 +144,11 @@ function validateCartTrack(track) {
 }
 
 function addToCart(track, quantity = 1) {
+    if (!cartReady) {
+        showCartMessage("Your cart is still loading. Please try again.", "warning");
+        return false;
+    }
+
     const error = validateCartTrack(track);
 
     if (error !== "") {
@@ -88,6 +188,8 @@ function addToCart(track, quantity = 1) {
 }
 
 function removeFromCart(trackId) {
+    if (!cartReady) return;
+
     for (let i = 0; i < cart.length; i++) {
         if (cart[i].trackId === trackId) {
             cart.splice(i, 1);
@@ -99,6 +201,8 @@ function removeFromCart(trackId) {
 }
 
 function updateCartQuantity(trackId, quantity) {
+    if (!cartReady) return false;
+
     if (!validQuantity(quantity)) {
         showCartMessage(
             "Enter a whole-number quantity of 1 or more. Use Remove to delete a track.",
@@ -120,12 +224,6 @@ function updateCartQuantity(trackId, quantity) {
 }
 
 function renderCart() {
-    try {
-        localStorage.setItem("soundwaveCartItems", JSON.stringify(getCartItems()));
-    } catch (error) {
-        console.error("Could not save cart items in this browser:", error);
-    }
-
     const cartBody = document.getElementById("cartBody");
     cartBody.textContent = "";
 
@@ -190,6 +288,8 @@ function renderCart() {
 
     document.getElementById("cartTotal").textContent =
         "$" + (totalCents / 100).toFixed(2);
+
+    saveCart();
 }
 
 function getCartItems() {
@@ -211,9 +311,12 @@ function getCartItems() {
 }
 
 document.getElementById("clearCartBtn").addEventListener("click", function() {
+    if (!cartReady) return;
+
     cart.length = 0;
     renderCart();
     showCartMessage("Cart cleared.", "success");
 });
 
-renderCart();
+// Load the MongoDB cart when the page opens.
+initializeCart();

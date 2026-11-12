@@ -1,4 +1,5 @@
-// Aidan: AngularJS billing validation. Demo only; the API saves the order summary.
+
+ // Aidan: AngularJS billing validation and MongoDB cart integration.
 var billingApp = angular.module("billingApp", []);
 
 billingApp.controller("BillingController", function ($scope, $http) {
@@ -9,14 +10,26 @@ billingApp.controller("BillingController", function ($scope, $http) {
     $scope.success = false;
     $scope.cartItems = [];
     $scope.shippingCost = 4.99;
+    $scope.cartLoading = true;
 
-    try {
-        var savedItems = JSON.parse(localStorage.getItem("soundwaveCartItems") || "[]");
-        if (Array.isArray(savedItems)) {
-            $scope.cartItems = savedItems;
-        }
-    } catch (error) {
-        console.error("Could not load cart items saved in this browser:", error);
+    // Load the same MongoDB cart used by the shopping cart page.
+    var cartId = localStorage.getItem("soundwaveCartId");
+
+    if (!cartId) {
+        $scope.cartLoading = false;
+        $scope.message = "No shopping cart was found. Please visit your shopping cart first.";
+    } else {
+        $http.get("/api/cart/" + encodeURIComponent(cartId))
+            .then(function (response) {
+                $scope.cartItems = response.data.items || [];
+                $scope.cartLoading = false;
+            })
+            .catch(function (error) {
+                $scope.cartItems = [];
+                $scope.cartLoading = false;
+                $scope.message = "Could not load your shopping cart. Please try again.";
+                console.error("Could not load MongoDB cart:", error);
+            });
     }
 
     $scope.cartSubtotal = function () {
@@ -32,9 +45,15 @@ billingApp.controller("BillingController", function ($scope, $http) {
     $scope.validateBilling = function () {
         var billing = $scope.billing;
         $scope.errors = {};
-        var requiredFields = ["fullName", "email", "address", "city", "state", "zipCode", "cardName"];
+
+        var requiredFields = [
+            "fullName", "email", "address", "city",
+            "state", "zipCode", "cardName"
+        ];
+
         for (var i = 0; i < requiredFields.length; i++) {
             var field = requiredFields[i];
+
             if (!billing[field] || String(billing[field]).trim() === "") {
                 $scope.errors[field] = "This field is required.";
             }
@@ -43,28 +62,36 @@ billingApp.controller("BillingController", function ($scope, $http) {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billing.email || "")) {
             $scope.errors.email = "Enter a valid email address.";
         }
+
         if (!/^\d{5}(-\d{4})?$/.test(billing.zipCode || "")) {
             $scope.errors.zipCode = "Enter a 5-digit ZIP code or ZIP+4.";
         }
 
         var cardNumber = billing.cardNumber || "";
         var digits = cardNumber.replace(/[ -]/g, "");
-        if (!/^\d+(?:[ -]\d+)*$/.test(cardNumber) || !/^\d{13,19}$/.test(digits)) {
-            $scope.errors.cardNumber = "Enter 13-19 demo card digits; spaces or hyphens may separate groups.";
+
+        if (!/^\d+(?:[ -]\d+)*$/.test(cardNumber) ||
+            !/^\d{13,19}$/.test(digits)) {
+            $scope.errors.cardNumber =
+                "Enter 13-19 demo card digits; spaces or hyphens may separate groups.";
         }
 
         var expiration = billing.expirationDate || "";
+
         if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiration)) {
             $scope.errors.expirationDate = "Use MM/YY with a month from 01 to 12.";
         } else {
             var month = Number(expiration.substring(0, 2));
             var year = 2000 + Number(expiration.substring(3, 5));
             var today = new Date();
+
             if (year < today.getFullYear() ||
                 (year === today.getFullYear() && month < today.getMonth() + 1)) {
-                $scope.errors.expirationDate = "Enter the current month or a future expiration date.";
+                $scope.errors.expirationDate =
+                    "Enter the current month or a future expiration date.";
             }
         }
+
         if (!/^\d{3,4}$/.test(billing.securityCode || "")) {
             $scope.errors.securityCode = "Enter a 3- or 4-digit demo security code.";
         }
@@ -72,12 +99,14 @@ billingApp.controller("BillingController", function ($scope, $http) {
         for (var error in $scope.errors) {
             return false;
         }
+
         return true;
     };
 
     $scope.billingChanged = function () {
         $scope.success = false;
         $scope.message = "";
+
         if ($scope.submitted) {
             $scope.validateBilling();
         }
@@ -85,37 +114,51 @@ billingApp.controller("BillingController", function ($scope, $http) {
 
     $scope.cardLastFour = function () {
         var digits = ($scope.billing.cardNumber || "").replace(/[ -]/g, "");
+
         if (/^\d{13,19}$/.test(digits)) {
             return digits.slice(-4);
         }
+
         return "";
     };
 
-    // Updated submission handler with $http call
+    // Validate and submit billing details to the Node.js API.
     $scope.submitBilling = function () {
         $scope.submitted = true;
+
+        if ($scope.cartLoading) {
+            $scope.success = false;
+            $scope.message = "Your cart is still loading. Please try again.";
+            return;
+        }
+
         if (!$scope.cartItems.length) {
             $scope.success = false;
             $scope.message = "Your cart is empty. Add items before submitting billing.";
             return;
         }
+
         var isValid = $scope.validateBilling();
 
         if (isValid) {
             $scope.message = "Validating and saving...";
-            
-            // Send data to the Node.js API endpoint
+
             var billingSubmission = angular.copy($scope.billing);
             billingSubmission.items = $scope.cartItems;
-            $http.post('/api/billing', billingSubmission)
+
+            $http.post("/api/billing", billingSubmission)
                 .then(function (response) {
                     $scope.success = true;
-                    $scope.message = response.data.message || "Billing details saved successfully!";
-                    // Optionally reset form: $scope.billing = {}; $scope.submitted = false;
+                    $scope.message = response.data.message ||
+                        "Billing details saved successfully!";
                 })
                 .catch(function (error) {
                     $scope.success = false;
-                    $scope.message = "Server error: Could not save billing details. Please try again.";
+                    $scope.message =
+                        error.data && error.data.message
+                            ? error.data.message
+                            : "Server error: Could not save billing details. Please try again.";
+
                     console.error("Submission error:", error);
                 });
         } else {

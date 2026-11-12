@@ -13,7 +13,7 @@
      cart.js globals used: addToCart(track, qty), getCartItems(), showCartMessage(text, type)
    ===================================================================== */
 $(function () {
-    var CATALOG_URL = 'products.json';
+    var CATALOG_URL = '/api/products';
     var MAX_RESULTS = 20;             // keep the results table short; search narrows it
     var catalog = [];                 // normalized copy of products.json
 
