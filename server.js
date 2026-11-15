@@ -14,10 +14,11 @@ const path = require("path");
 const crypto = require("crypto");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/api/cart", require("./routes/cart"));
 
 // --------------------------------------------------
 // HELPER FUNCTIONS
@@ -46,14 +47,13 @@ const cleanProduct = (body) => {
         description: str(body.description),
         category: str(body.category),
         unitOfMeasure: str(body.unitOfMeasure),
-        price: typeof body.price === "number"
-            ? body.price
-            : parseFloat(body.price),
+        price: (typeof body.price === "number" || typeof body.price === "string") &&
+            String(body.price).trim() !== "" ? Number(body.price) : NaN,
         weight: str(body.weight)
     };
 
-    if (!/^[A-Za-z0-9-]{3,20}$/.test(item.productId)) {
-        return { error: "Product ID must be 3–20 letters, numbers or dashes." };
+    if (!/^[A-Za-z0-9-]{1,20}$/.test(item.productId)) {
+        return { error: "Product ID must be 1–20 letters, numbers or dashes." };
     }
 
     if (!item.description) {
@@ -278,6 +278,9 @@ const cleanCart = (items) => {
     const cleanedItems = [];
 
     for (const item of items) {
+        if (!item || typeof item !== "object") {
+            return { error: "Each cart item must be an object." };
+        }
         const trackId = String(item.trackId || "").trim();
         const title = String(item.title || "").trim();
         const category = String(item.category || "").trim();
@@ -293,7 +296,7 @@ const cleanCart = (items) => {
             return { error: "Each cart item must have a valid price." };
         }
 
-        if (!Number.isInteger(quantity) || quantity < 1) {
+        if (!Number.isSafeInteger(quantity) || quantity < 1) {
             return { error: "Quantity must be a positive whole number." };
         }
 
@@ -937,4 +940,8 @@ const startServer = async () => {
     }
 };
 
-startServer();
+// Importing the app lets tests exercise routing without starting another server.
+if (require.main === module) {
+    startServer();
+}
+module.exports = app;

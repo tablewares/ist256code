@@ -8,6 +8,7 @@ returnsApp.controller("ReturnsController", function ($scope, $http) {
     $scope.message = "";
     $scope.submitted = false;
     $scope.success = false;
+    $scope.saving = false;
 
     $scope.productName = function () {
         if ($scope.returnDetails.productId === "headphones") {
@@ -90,6 +91,7 @@ returnsApp.controller("ReturnsController", function ($scope, $http) {
 
     // Validates and saves the return request to MongoDB.
     $scope.submitReturn = function () {
+        if ($scope.saving) return;
         $scope.submitted = true;
         $scope.success = false;
 
@@ -105,6 +107,8 @@ returnsApp.controller("ReturnsController", function ($scope, $http) {
             productCondition: $scope.returnDetails.productCondition
         };
 
+        $scope.saving = true;
+        $scope.message = "Saving return request...";
         $http.post("/api/returns", returnData)
             .then(function (response) {
                 $scope.success = true;
@@ -119,6 +123,8 @@ returnsApp.controller("ReturnsController", function ($scope, $http) {
                         : "There was a problem saving your return request. Please try again.";
 
                 console.error("Return submission failed:", error);
+            }).finally(function () {
+                $scope.saving = false;
             });
     };
 });

@@ -6,7 +6,7 @@
 let cart = [];
 let cartId = localStorage.getItem("soundwaveCartId");
 let cartReady = false;
-let saveQueue = Promise.resolve();
+let cartSaving = false;
 
 // Create a unique cart ID for this browser if one does not exist.
 if (!cartId) {
@@ -86,36 +86,48 @@ async function initializeCart() {
     }
 }
 
-// Save cart changes to MongoDB.
-// Queue requests so rapid changes are saved in the correct order.
-function saveCart() {
-    if (!cartReady) return;
+// Only one cart change is sent at a time. Rendering never saves data.
+async function changeCart(method, path, body, successMessage) {
+    if (!cartReady || cartSaving) {
+        showCartMessage("Please wait for your cart to finish loading or saving.", "warning");
+        return false;
+    }
 
-    const items = getCartItems();
+    cartSaving = true;
+    document.getElementById("checkoutBtn").disabled = true;
+    showCartMessage("Saving cart...", "info");
 
-    saveQueue = saveQueue.catch(() => {}).then(async () => {
+    try {
         const response = await fetch(
-            "/api/cart/" + encodeURIComponent(cartId),
+            "/api/cart/" + encodeURIComponent(cartId) + "/items" + path,
             {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ items })
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: body ? JSON.stringify(body) : undefined
             }
         );
-
+        // An unmounted router can return an HTML 404 instead of JSON.
+        const data = await response.json().catch(function() { return {}; });
         if (!response.ok) {
-            throw new Error("Could not save your cart.");
+            throw new Error(data.message || "Could not save your cart. Check that the cart router is mounted and try again.");
         }
-    }).catch(error => {
-        console.error("Could not save cart to MongoDB:", error);
+        if (!Array.isArray(data.items)) {
+            throw new Error("The server returned an invalid cart. Refresh before continuing.");
+        }
 
-        showCartMessage(
-            "Your cart could not be saved. Please try again.",
-            "danger"
-        );
-    });
+        cart = data.items;
+        renderCart();
+        showCartMessage(successMessage, "success");
+        return true;
+    } catch (error) {
+        // Restore the last confirmed quantities if a request fails.
+        renderCart();
+        showCartMessage(error.message || "Could not save your cart. Please try again.", "danger");
+        return false;
+    } finally {
+        cartSaving = false;
+        document.getElementById("checkoutBtn").disabled = false;
+    }
 }
 
 function validateCartTrack(track) {
@@ -143,66 +155,34 @@ function validateCartTrack(track) {
     return "";
 }
 
-function addToCart(track, quantity = 1) {
-    if (!cartReady) {
-        showCartMessage("Your cart is still loading. Please try again.", "warning");
-        return false;
-    }
-
+async function addToCart(track, quantity = 1) {
     const error = validateCartTrack(track);
-
     if (error !== "") {
         showCartMessage(error, "danger");
         return false;
     }
-
     if (!validQuantity(quantity)) {
         showCartMessage("Enter a whole-number quantity of 1 or more.", "danger");
         return false;
     }
 
-    const trackId = track.trackId.trim();
-
-    for (let i = 0; i < cart.length; i++) {
-        if (cart[i].trackId.toLowerCase() === trackId.toLowerCase()) {
-            cart[i].quantity += Number(quantity);
-            renderCart();
-            showCartMessage("Track quantity increased.", "success");
-            return true;
-        }
-    }
-
-    cart.push({
-        trackId: trackId,
+    return changeCart("POST", "", {
+        trackId: track.trackId.trim(),
         title: track.title.trim(),
         category: track.category.trim(),
         format: track.format.trim(),
         price: Math.round(Number(track.price) * 100) / 100,
         info: track.info || "",
         quantity: Number(quantity)
-    });
-
-    renderCart();
-    showCartMessage("Track added to your cart.", "success");
-    return true;
+    }, "Track added to your cart.");
 }
 
-function removeFromCart(trackId) {
-    if (!cartReady) return;
-
-    for (let i = 0; i < cart.length; i++) {
-        if (cart[i].trackId === trackId) {
-            cart.splice(i, 1);
-            renderCart();
-            showCartMessage("Track removed from your cart.", "success");
-            return;
-        }
-    }
+async function removeFromCart(trackId) {
+    return changeCart("DELETE", "/" + encodeURIComponent(trackId), null,
+        "Track removed from your cart.");
 }
 
-function updateCartQuantity(trackId, quantity) {
-    if (!cartReady) return false;
-
+async function updateCartQuantity(trackId, quantity) {
     if (!validQuantity(quantity)) {
         showCartMessage(
             "Enter a whole-number quantity of 1 or more. Use Remove to delete a track.",
@@ -210,17 +190,8 @@ function updateCartQuantity(trackId, quantity) {
         );
         return false;
     }
-
-    for (let i = 0; i < cart.length; i++) {
-        if (cart[i].trackId === trackId) {
-            cart[i].quantity = Number(quantity);
-            renderCart();
-            showCartMessage("Quantity updated.", "success");
-            return true;
-        }
-    }
-
-    return false;
+    return changeCart("PUT", "/" + encodeURIComponent(trackId),
+        { quantity: Number(quantity) }, "Quantity updated.");
 }
 
 function renderCart() {
@@ -289,7 +260,6 @@ function renderCart() {
     document.getElementById("cartTotal").textContent =
         "$" + (totalCents / 100).toFixed(2);
 
-    saveCart();
 }
 
 function getCartItems() {
@@ -310,12 +280,8 @@ function getCartItems() {
     return items;
 }
 
-document.getElementById("clearCartBtn").addEventListener("click", function() {
-    if (!cartReady) return;
-
-    cart.length = 0;
-    renderCart();
-    showCartMessage("Cart cleared.", "success");
+document.getElementById("clearCartBtn").addEventListener("click", async function() {
+    await changeCart("DELETE", "", null, "Cart cleared.");
 });
 
 // Load the MongoDB cart when the page opens.

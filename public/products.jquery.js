@@ -1,15 +1,15 @@
 /* =====================================================================
    products.jquery.js  –  jQuery section (Product Management page)
    Responsibilities:
-     1. Load the JSON catalog (GET /api/products  ->  products.json)
+     1. Load the MongoDB catalog (GET /api/products)
      2. Render it as a table
      3. Live search + category filter + sort
      4. Update an existing entry (PUT) / add (POST) / delete (DELETE)
-     5. Re-render so the screen always matches the JSON document
+     5. Re-render so the screen always matches the saved database data
    ===================================================================== */
 $(function () {
     var API = '/api/products';
-    var products = [];        // in-memory copy of products.json
+    var products = [];        // in-memory copy of the API response
     var editingId = null;     // productId being edited, or null when adding
     var readOnly = false;     // true if the server isn't running
 
@@ -32,7 +32,8 @@ $(function () {
     }
 
     function money(n) {
-        return '$' + Number(n).toFixed(2);
+        return String(n).trim() !== '' && isFinite(n) && Number(n) >= 0
+            ? '$' + Number(n).toFixed(2) : 'Not priced';
     }
 
     function showStatus(type, message) {
@@ -54,17 +55,8 @@ $(function () {
                 finishLoad(flashId);
             })
             .fail(function () {
-                // Server not running: fall back to the static file (read-only)
-                $.getJSON('products.json')
-                    .done(function (data) {
-                        readOnly = true;
-                        products = data;
-                        finishLoad(flashId);
-                        showStatus('warning', 'Server not running – showing products.json read-only. Start it with "node server.js" to save changes.');
-                    })
-                    .fail(function () {
-                        showStatus('danger', 'Could not load products.json.');
-                    });
+                readOnly = true;
+                showStatus('danger', 'Could not load products from MongoDB. Check the server and database connection, then refresh.');
             });
     }
 
@@ -72,14 +64,18 @@ $(function () {
         buildCategoryOptions();
         applyFilters();
         if (flashId) {
-            $('tr[data-id="' + flashId + '"]').addClass('row-flash');
+            $('#productBody tr').filter(function () { return $(this).attr('data-id') === String(flashId); }).addClass('row-flash');
         }
     }
 
     function buildCategoryOptions() {
         var $sel = $('#categoryFilter');
         var current = $sel.val();
-        var cats = $.unique(products.map(function (p) { return p.category; })).sort();
+        var cats = [];
+        $.each(products, function (_, product) {
+            if (cats.indexOf(product.category) === -1) cats.push(product.category);
+        });
+        cats.sort();
         $sel.find('option:gt(0)').remove();
         $.each(cats, function (_, c) {
             $sel.append($('<option>').val(c).text(c));
@@ -149,8 +145,8 @@ $(function () {
 
     /* ---------- edit: copy a row into the form ---------- */
     $('#productBody').on('click', '.edit-btn', function () {
-        var id = $(this).closest('tr').data('id');
-        var p = $.grep(products, function (x) { return x.productId === id; })[0];
+        var id = String($(this).closest('tr').attr('data-id'));
+        var p = $.grep(products, function (x) { return String(x.productId) === id; })[0];
         if (!p) return;
 
         $.each(FIELDS, function (_, f) { $('#' + f).val(p[f]); });
@@ -204,7 +200,7 @@ $(function () {
             contentType: 'application/json',
             data: JSON.stringify(item)
         }).done(function () {
-            showStatus('success', (updating ? 'Updated ' : 'Added ') + item.productId + ' – products.json saved.');
+            showStatus('success', (updating ? 'Updated ' : 'Added ') + item.productId + ' – MongoDB updated.');
             resetForm();
             loadProducts(item.productId);
         }).fail(function (xhr) {
@@ -219,7 +215,7 @@ $(function () {
     /* ---------- delete ---------- */
     $('#productBody').on('click', '.delete-btn', function () {
         var $row = $(this).closest('tr');
-        var id = $row.data('id');
+        var id = String($row.attr('data-id'));
         if (readOnly) return showStatus('warning', 'Server not running – changes cannot be saved.');
         if (!window.confirm('Delete ' + id + '?')) return;
 
@@ -229,7 +225,7 @@ $(function () {
                     if (editingId === id) resetForm();
                     loadProducts();
                 });
-                showStatus('success', 'Deleted ' + id + ' – products.json saved.');
+                showStatus('success', 'Deleted ' + id + ' – MongoDB updated.');
             })
             .fail(function () { showStatus('danger', 'Delete failed.'); });
     });

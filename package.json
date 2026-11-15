@@ -4,8 +4,8 @@
   "description": "hello world\r repository for ist 256 code",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "seed:products": "node scripts/seedProducts.js"
   },
   "repository": {
     "type": "git",

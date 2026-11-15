@@ -41,7 +41,7 @@
         <h1 class="section-title mb-4">Shopping Cart</h1>
 
         <!-- Success / error message -->
-        <div id="message" class="alert d-none"></div>
+        <div id="message" class="alert d-none" role="status" aria-live="polite"></div>
 
         <!-- Search -->
         <h2 class="h4">Find Tracks</h2>
@@ -80,10 +80,10 @@
 
         <p class="fw-bold fs-5">Total: <span id="cartTotal">$0.00</span></p>
 
-        <button id="checkoutBtn" type="button" class="btn btn-outline-secondary"  href="billing.html">Go to cart</button>
+        <button id="checkoutBtn" type="button" class="btn btn-outline-secondary">Continue to Billing</button>
         <button type="button" class="btn btn-outline-secondary" id="clearCartBtn">Clear Cart</button>
 
-        <!-- Cart JSON preview: this is the exact body the AJAX call sends (filled in by cart.jquery.js) -->
+        <!-- Confirmed cart JSON preview (filled in by cart.jquery.js) -->
         <h2 class="h5 mt-5">Cart JSON</h2>
         <pre id="cartJson" class="bg-white border rounded p-3 small"></pre>
 

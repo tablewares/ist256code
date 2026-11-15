@@ -11,6 +11,7 @@ billingApp.controller("BillingController", function ($scope, $http) {
     $scope.cartItems = [];
     $scope.shippingCost = 4.99;
     $scope.cartLoading = true;
+    $scope.saving = false;
 
     // Load the same MongoDB cart used by the shopping cart page.
     var cartId = localStorage.getItem("soundwaveCartId");
@@ -124,6 +125,8 @@ billingApp.controller("BillingController", function ($scope, $http) {
 
     // Validate and submit billing details to the Node.js API.
     $scope.submitBilling = function () {
+        if ($scope.saving) return;
+        $scope.success = false;
         $scope.submitted = true;
 
         if ($scope.cartLoading) {
@@ -141,6 +144,7 @@ billingApp.controller("BillingController", function ($scope, $http) {
         var isValid = $scope.validateBilling();
 
         if (isValid) {
+            $scope.saving = true;
             $scope.message = "Validating and saving...";
 
             var billingSubmission = angular.copy($scope.billing);
@@ -149,8 +153,8 @@ billingApp.controller("BillingController", function ($scope, $http) {
             $http.post("/api/billing", billingSubmission)
                 .then(function (response) {
                     $scope.success = true;
-                    $scope.message = response.data.message ||
-                        "Billing details saved successfully!";
+                    $scope.message = (response.data.message || "Billing details saved successfully!") +
+                        " Order number: " + response.data.orderNumber;
                 })
                 .catch(function (error) {
                     $scope.success = false;
@@ -160,6 +164,8 @@ billingApp.controller("BillingController", function ($scope, $http) {
                             : "Server error: Could not save billing details. Please try again.";
 
                     console.error("Submission error:", error);
+                }).finally(function () {
+                    $scope.saving = false;
                 });
         } else {
             $scope.success = false;

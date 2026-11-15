@@ -1,13 +1,13 @@
 /* =====================================================================
    cart.jquery.js  –  jQuery section (Shopping Cart page)
-   Owner: Adam (jQuery + AJAX).  Cart rules/validation live in cart.js (Aidan).
+   Shopping cart frontend integration (Aidan).  Cart rules/validation live in cart.js (Aidan).
 
    Responsibilities:
-     1. Load the JSON product document (products.json)
+     1. Load products from /api/products
      2. Live search the collection (title, artist, genre, format, ID)
      3. Render matches with an "Add" button that calls addToCart() from cart.js
-     4. Show the cart as JSON, exactly as it will be sent
-     5. Keep the cart in browser localStorage for billing
+     4. Show the confirmed cart as JSON
+     5. Continue to billing using the saved MongoDB cart
 
    Depends on (loaded before this file): jQuery, cart.js
      cart.js globals used: addToCart(track, qty), getCartItems(), showCartMessage(text, type)
@@ -15,7 +15,7 @@
 $(function () {
     var CATALOG_URL = '/api/products';
     var MAX_RESULTS = 20;             // keep the results table short; search narrows it
-    var catalog = [];                 // normalized copy of products.json
+    var catalog = [];                 // normalized copy of the products response
 
     /* ---------- helpers ---------- */
     function esc(text) {
@@ -42,8 +42,8 @@ $(function () {
         return value == null ? '' : String(value).trim();
     }
 
-    /* ---------- 1. turn a products.json entry into a cart-ready track ----------
-       products.json field   ->  cart.js track field
+    /* ---------- 1. turn a product API entry into a cart-ready track ----------
+       Product API field   ->  cart.js track field
        productId             ->  trackId
        description           ->  title
        category              ->  category
@@ -80,7 +80,7 @@ $(function () {
                 search();
             })
             .fail(function () {
-                showCartMessage('Could not load products.json. Run the site from a web server (node server.js).', 'danger');
+                showCartMessage('Could not load products from the backend. Check the server and database connection.', 'danger');
             });
     }
 
@@ -138,13 +138,13 @@ $(function () {
     $('#searchBox').on('input', search);
 
     /* ---------- 3. add to cart (cart.js does the validation and rendering) ---------- */
-    $('#resultsBody').on('click', '.add-btn', function () {
+    $('#resultsBody').on('click', '.add-btn', async function () {
         var $row = $(this).closest('tr');
         var id = String($row.data('id'));
         var track = $.grep(catalog, function (t) { return t.trackId === id; })[0];
         if (!track) return;
 
-        var added = addToCart({
+        var added = await addToCart({
             trackId: track.trackId,
             title: track.title,
             category: track.category,
@@ -161,21 +161,17 @@ $(function () {
 
     /* ---------- 3b. update and remove cart rows (delegated, so they survive every re-render) ---------- */
     // Change a quantity: cart.js validates it and redraws the cart; bad input is flagged red.
-    $('#cartBody').on('change', '.qty-input', function () {
+    $('#cartBody').on('change', '.qty-input', async function () {
         var $input = $(this);
-        var ok = updateCartQuantity($input.attr('data-track-id'), $input.val());
+        var ok = await updateCartQuantity($input.attr('data-track-id'), $input.val());
         if (!ok) {
             $input.addClass('is-invalid').attr('aria-invalid', 'true');
         }
     });
 
-    // Remove a row: fade it out, then let cart.js delete it from the cart array.
-    $('#cartBody').on('click', '.remove-btn', function () {
-        var $button = $(this).prop('disabled', true);
-        var id = $button.attr('data-track-id');
-        $button.closest('tr').fadeOut(200, function () {
-            removeFromCart(id);
-        });
+    // cart.js removes the row only after the backend confirms deletion.
+    $('#cartBody').on('click', '.remove-btn', async function () {
+        await removeFromCart($(this).attr('data-track-id'));
     });
 
     /* ---------- 4. cart as JSON ---------- */
@@ -198,8 +194,12 @@ $(function () {
         { childList: true, subtree: true });
     updateCartJson();
 
-    /* ---------- 5. Continue using the cart saved by cart.js in localStorage ---------- */
+    /* ---------- 5. Continue using the confirmed MongoDB cart ---------- */
     $('#checkoutBtn').on('click', function () {
+        if (!cartReady || cartSaving) {
+            showCartMessage('Please wait for your cart to finish loading or saving.', 'warning');
+            return;
+        }
         var items = getCartItems();
         if (!items.length) {
             showCartMessage('Your cart is empty. Add at least one track before continuing.', 'danger');
@@ -207,7 +207,7 @@ $(function () {
         }
 
         var payload = buildPayload(items);
-        showCartMessage('Cart saved in this browser: ' + payload.itemCount + ' item(s), $' + payload.total.toFixed(2) + '. Opening billing...', 'success');
+        showCartMessage('Cart saved: ' + payload.itemCount + ' item(s), $' + payload.total.toFixed(2) + '. Opening billing...', 'success');
         window.location.href = 'billing.html';
     });
 

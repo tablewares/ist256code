@@ -8,7 +8,13 @@ const cartItemSchema = new mongoose.Schema({
     format: { type: String, required: true },
     price: { type: Number, required: true, min: 0 },
     info: { type: String, default: "" },
-    quantity: { type: Number, required: true, min: 1 }
+    quantity: {
+        type: Number, required: true, min: 1,
+        validate: {
+            validator: Number.isSafeInteger,
+            message: "Quantity must be a positive whole number."
+        }
+    }
 });
 
 const cartSchema = new mongoose.Schema({
