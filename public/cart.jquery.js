@@ -52,7 +52,10 @@ $(function () {
        weight ("Artist-3:27")->  info            – artist is also pulled out for searching */
     function normalize(p) {
         var priceText = trim(p.price);
-        var price = (priceText !== '' && isFinite(priceText)) ? Number(priceText) : null;
+        var price = Number(priceText);
+        if (!priceText || price < 0 || !Number.isSafeInteger(Math.round(price * 100))) {
+            price = null;
+        }
 
         var info = trim(p.weight);
         var artist = '';

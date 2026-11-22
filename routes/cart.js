@@ -1,5 +1,6 @@
 const express = require("express");
 const Cart = require("../models/Cart");
+const Product = require("../models/Product");
 const router = express.Router();
 
 // Mounted at /api/cart in server.js after express.json().
@@ -31,43 +32,51 @@ function sendError(res, error) {
 router.post("/:cartId/items", async (req, res) => {
     try {
         const body = req.body || {};
-        const fields = ["trackId", "title", "category", "format"];
-        for (const field of fields) {
-            if (typeof body[field] !== "string" || !body[field].trim()) {
-                return res.status(400).json({ message: "Track ID, title, genre, and format are required." });
-            }
+        if (typeof body.trackId !== "string" || !body.trackId.trim()) {
+            return res.status(400).json({ message: "Track ID is required." });
         }
         if (!validQuantity(body.quantity)) {
             return res.status(400).json({ message: "Quantity must be a positive whole number." });
         }
-        if ((typeof body.price !== "number" && typeof body.price !== "string") ||
-            String(body.price).trim() === "" || !Number.isFinite(Number(body.price)) || Number(body.price) < 0) {
-            return res.status(400).json({ message: "Price must be a number of 0 or more." });
-        }
         const cart = await Cart.findOne({ cartId: req.params.cartId });
         if (!cart) return res.status(404).json({ message: "Cart not found. Refresh the page." });
 
-        const trackId = body.trackId.trim();
+        const product = await Product.findOne({ productId: body.trackId.trim() });
+        if (!product) return res.status(404).json({ message: "Product not found in the catalog." });
+
+        const priceText = (product.price || "").trim();
+        const price = Number(priceText);
+        const priceCents = Math.round(price * 100);
+        if (!priceText || price < 0 || !Number.isSafeInteger(priceCents)) {
+            return res.status(400).json({ message: "This product does not have a valid price." });
+        }
+
+        const trackId = product.productId.trim();
+        const title = (product.description || "").trim();
+        const category = (product.category || "").trim();
+        const format = (product.unitOfMeasure || "").trim();
+        if (!trackId || !title || !category || !format) {
+            return res.status(400).json({ message: "This product is missing required details." });
+        }
+
         const existing = cart.items.find(function(item) {
             return item.trackId.toLowerCase() === trackId.toLowerCase();
         });
-        if (existing) {
-            const quantity = existing.quantity + Number(body.quantity);
-            if (!Number.isSafeInteger(quantity)) {
-                return res.status(400).json({ message: "Quantity is too large." });
-            }
-            existing.quantity = quantity;
-        } else {
-            cart.items.push({
-                trackId: trackId,
-                title: body.title.trim(),
-                category: body.category.trim(),
-                format: body.format.trim(),
-                price: Math.round(Number(body.price) * 100) / 100,
-                info: typeof body.info === "string" ? body.info : "",
-                quantity: Number(body.quantity)
-            });
+        const quantity = (existing ? existing.quantity : 0) + Number(body.quantity);
+        if (!Number.isSafeInteger(quantity)) {
+            return res.status(400).json({ message: "Quantity is too large." });
         }
+        const item = {
+            trackId,
+            title,
+            category,
+            format,
+            price: priceCents / 100,
+            info: (product.weight || "").trim(),
+            quantity
+        };
+        if (existing) Object.assign(existing, item);
+        else cart.items.push(item);
         await saveCart(cart);
         res.status(201).json(cart);
     } catch (error) {

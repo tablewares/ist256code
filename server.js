@@ -276,6 +276,7 @@ const cleanCart = (items) => {
     }
 
     const cleanedItems = [];
+    const trackIds = new Set();
 
     for (const item of items) {
         if (!item || typeof item !== "object") {
@@ -286,26 +287,35 @@ const cleanCart = (items) => {
         const category = String(item.category || "").trim();
         const format = String(item.format || "").trim();
         const price = Number(item.price);
+        const priceCents = Math.round(price * 100);
         const quantity = Number(item.quantity);
 
         if (!trackId || !title || !category || !format) {
             return { error: "Each cart item must include its track details." };
         }
 
-        if (!Number.isFinite(price) || price < 0) {
+        if ((typeof item.price !== "number" && typeof item.price !== "string") ||
+            !String(item.price).trim() || price < 0 || !Number.isSafeInteger(priceCents)) {
             return { error: "Each cart item must have a valid price." };
         }
 
-        if (!Number.isSafeInteger(quantity) || quantity < 1) {
+        if ((typeof item.quantity !== "number" && typeof item.quantity !== "string") ||
+            !Number.isSafeInteger(quantity) || quantity < 1) {
             return { error: "Quantity must be a positive whole number." };
         }
+
+        const normalizedId = trackId.toLowerCase();
+        if (trackIds.has(normalizedId)) {
+            return { error: "Each track can appear only once in a cart." };
+        }
+        trackIds.add(normalizedId);
 
         cleanedItems.push({
             trackId,
             title,
             category,
             format,
-            price: Math.round(price * 100) / 100,
+            price: priceCents / 100,
             info: String(item.info || ""),
             quantity
         });

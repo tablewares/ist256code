@@ -23,7 +23,7 @@ function showCartMessage(text, type) {
 
 function validQuantity(quantity) {
     const number = Number(quantity);
-    return Number.isInteger(number) && number > 0;
+    return Number.isSafeInteger(number) && number > 0;
 }
 
 // Load the cart from MongoDB when the page opens.
@@ -146,7 +146,7 @@ function validateCartTrack(track) {
     if (
         (typeof track.price !== "number" && typeof track.price !== "string") ||
         String(track.price).trim() === "" ||
-        !Number.isFinite(Number(track.price)) ||
+        !Number.isSafeInteger(Math.round(Number(track.price) * 100)) ||
         Number(track.price) < 0
     ) {
         return "This track needs a numeric price of 0 or more before it can be added.";
@@ -168,11 +168,6 @@ async function addToCart(track, quantity = 1) {
 
     return changeCart("POST", "", {
         trackId: track.trackId.trim(),
-        title: track.title.trim(),
-        category: track.category.trim(),
-        format: track.format.trim(),
-        price: Math.round(Number(track.price) * 100) / 100,
-        info: track.info || "",
         quantity: Number(quantity)
     }, "Track added to your cart.");
 }
