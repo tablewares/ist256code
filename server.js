@@ -7,6 +7,8 @@ const Cart = require("./models/Cart");
 const Billing = require("./models/Billing");
 const Shipping = require("./models/Shipping");
 const Return = require("./models/Return");
+const Shopper = require("./models/Shopper");
+
 
 const express = require("express");
 const fs = require("fs");
@@ -78,37 +80,43 @@ const cleanProduct = (body) => {
 };
 
 // --------------------------------------------------
-// SIGNUP ENDPOINT
+// SIGNUP ENDPOINT - MONGODB
 // --------------------------------------------------
 
-app.post("/api/signup", (req, res) => {
-    const userData = req.body;
-    let existingData = [];
+app.post("/api/signup", async (req, res) => {
+    try {
+        const {
+            fullName,
+            age,
+            email,
+            schoolOrOrganization,
+            phoneNumber,
+            favoriteMusicGenre
+        } = req.body;
 
-    const filePath = path.join(__dirname, "user_data.json");
+        const newShopper = await Shopper.create({
+            fullName,
+            age: Number(age),
+            email: email.trim().toLowerCase(),
+            schoolOrOrganization,
+            phoneNumber,
+            favoriteMusicGenre: favoriteMusicGenre || "Other"
+        });
 
-    if (fs.existsSync(filePath)) {
-        const fileContent = fs.readFileSync(filePath, "utf8");
+        res.status(201).json({
+            success: true,
+            message: "SoundWave account created successfully!",
+            shopper: newShopper
+        });
 
-        try {
-            existingData = JSON.parse(fileContent);
+    } catch (error) {
+        console.error("Signup error:", error);
 
-            if (!Array.isArray(existingData)) {
-                existingData = [existingData];
-            }
-        } catch (err) {
-            existingData = [];
-        }
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
-
-    existingData.push(userData);
-
-    fs.writeFileSync(
-        filePath,
-        JSON.stringify(existingData, null, 2)
-    );
-
-    res.status(200).json({ message: "data saved" });
 });
 
 // --------------------------------------------------
