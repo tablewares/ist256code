@@ -1,35 +1,15 @@
 {
-  "schemaVersion": 1,
-  "createdAt": "2026-11-07T23:45:00.000Z",
-  "customer": {
-    "fullName": "Jordan Rivera",
-    "email": "jordan.rivera@example.com"
+  "orderNumber": "SW-10482",
+  "product": {
+    "productId": "5",
+    "productName": "Stupid Song",
+    "category": "Pop",
+    "format": "Vinyl",
+    "price": 13.33
   },
-  "items": [
-    {
-      "productId": "5",
-      "productName": "Stupid Song",
-      "category": "Pop",
-      "format": "Vinyl",
-      "price": 13.33,
-      "quantity": 1,
-      "reason": "defective",
-      "condition": "damaged",
-      "details": "Record skips on side B."
-    },
-    {
-      "productId": "7",
-      "productName": "Earrings",
-      "category": "Pop",
-      "format": "Vinyl",
-      "price": 35.59,
-      "quantity": 1,
-      "reason": "other",
-      "condition": "like-new",
-      "details": "Bought the wrong edition for a gift."
-    }
-  ],
-  "refundPreference": "original-payment",
-  "comments": "Both items arrived together in one package.",
-  "totalRefund": 48.92
+  "reason": "defective",
+  "condition": "opened",
+  "comments": "Record skips on side B.",
+  "status": "received",
+  "createdAt": "2026-11-10T23:45:00.000Z"
 }
