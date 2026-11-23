@@ -29,7 +29,7 @@ $(function () {
 
     /* ---------- 1. load products.json ---------- */
     function loadTracks() {
-        $.getJSON('products.json')
+        $.getJSON('/api/products')       // backend (MongoDB) product list
             .done(function (data) {
                 tracks = $.map(data, function (p) {
                     var artist = artistOf(p.weight);
@@ -44,7 +44,7 @@ $(function () {
                 renderOptions();
             })
             .fail(function () {
-                $count.text('Track list unavailable: could not load products.json.');
+                $count.text('Track list unavailable: could not load the products. Is the server running?');
             });
     }
 

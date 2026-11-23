@@ -11,6 +11,10 @@ returnsApp.controller("ReturnsController", function ($scope, $http) {
     $scope.saving = false;
 
     $scope.productName = function () {
+        // A product chosen with the jQuery search (returns.jquery.js) is saved in returnDetails.product.
+        if ($scope.returnDetails.product) {
+            return $scope.returnDetails.product.productName;
+        }
         if ($scope.returnDetails.productId === "headphones") {
             return "SoundWave Headphones";
         } else if ($scope.returnDetails.productId === "speaker") {
